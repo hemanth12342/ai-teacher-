@@ -104,6 +104,14 @@
                 <button class="sidebar-tab" data-panel="qa" onclick="switchTab('qa')">🤖 Q&amp;A</button>
                 <button class="sidebar-tab" data-panel="files" onclick="switchTab('files')">📁 Files</button>
                 <button class="sidebar-tab" data-panel="people" onclick="switchTab('people')">👥 People</button>
+                <button class="sidebar-tab" data-panel="cams" onclick="switchTab('cams')">📷 Webcams</button>
+            </div>
+
+            
+            <!-- Webcams panel -->
+            <div class="sidebar-panel" id="panel-cams">
+                <div class="student-video-grid" id="student-video-grid" style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:16px; min-height:0;">
+                </div>
             </div>
 
             <!-- Chat panel -->
@@ -274,7 +282,7 @@
         // ── Video tile helpers ────────────────────────────────
         function getGrid() { return document.getElementById("video-grid"); }
 
-        function addVideoTile(peerId, stream, label) {
+        function addVideoTile(peerId, stream, label, roleStr) {
             if (document.getElementById(`tile-${peerId}`)) return;
             const tile = document.createElement("div");
             tile.className = "video-tile";
@@ -286,8 +294,13 @@
             lbl.className = "video-tile-label";
             lbl.textContent = label || peerId;
             tile.append(vid, lbl);
-            getGrid().appendChild(tile);
-            updateGridLayout();
+            
+            const isStudent = roleStr === "student";
+            if (isStudent) tile.style.minHeight = "200px"; tile.style.flexShrink = "0";
+            const targetGrid = isStudent ? document.getElementById("student-video-grid") : document.getElementById("video-grid");
+            targetGrid.appendChild(tile);
+            
+            if (!isStudent) updateGridLayout();
         }
 
         function removeVideoTile(peerId) {
@@ -643,6 +656,12 @@
 
             // Update local label
             document.getElementById("local-label").textContent = `${username} (You)`;
+            if (role === "student") {
+                const localTile = document.getElementById("tile-local");
+                localTile.style.minHeight = "200px"; localTile.style.flexShrink = "0";
+                document.getElementById("student-video-grid").appendChild(localTile);
+                updateGridLayout();
+            }
 
             // Show teacher controls
             if (role === "teacher") {
@@ -653,7 +672,10 @@
             webrtc = new WebRTCManager(
                 { send: (d) => ws?.readyState === WebSocket.OPEN && ws.send(d) },
                 [{ urls: "stun:stun.l.google.com:19302" }],
-                (peerId, stream) => addVideoTile(peerId, stream, remotePeers[peerId]?.username || peerId),
+                (peerId, stream) => {
+                    const part = attendanceMgr.participants.find(p => p.id === peerId);
+                    addVideoTile(peerId, stream, part?.name || peerId, part?.role || "student");
+                },
                 (peerId) => removeVideoTile(peerId),
             );
 
