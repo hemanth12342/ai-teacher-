@@ -635,8 +635,8 @@ button {
 .form-input {
     width: 100%;
     padding: 14px 16px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
     border-radius: var(--radius-md);
     color: var(--text-primary);
     font-family: var(--font-body);
