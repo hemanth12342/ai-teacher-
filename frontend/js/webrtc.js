@@ -21,7 +21,7 @@ class WebRTCManager {
     async startLocalMedia(videoEl) {
         try {
             this.localStream = await navigator.mediaDevices.getUserMedia({
-                video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+                video: { width: { ideal: 3840 }, height: { ideal: 2160 }, facingMode: "user" },
                 audio: { echoCancellation: true, noiseSuppression: true },
             });
             videoEl.srcObject = this.localStream;
