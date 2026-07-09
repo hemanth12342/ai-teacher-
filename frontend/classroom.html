@@ -375,14 +375,15 @@
                 if (payload.participants?.length) {
                     attendanceMgr.updateAll(payload.participants);
                     updateParticipantCount(payload.participants.length);
-                    // Initiate WebRTC with existing peers (only if one of us is a teacher)
-                    for (const p of payload.participants) {
-                        if (p.peer_id !== payload.peer_id) {
-                            if (role === "teacher" || p.role === "teacher") {
+                    // Only the TEACHER initiates connections (prevents glare / double-offer)
+                    if (role === "teacher") {
+                        for (const p of payload.participants) {
+                            if (p.peer_id !== payload.peer_id) {
                                 await webrtc.createPeer(p.peer_id, true);
                             }
                         }
                     }
+                    // Students wait — the teacher will send them an offer
                 }
                 chatMgr.appendMessage({ sender: "", payload: { text: payload.msg }, timestamp: new Date().toISOString() });
             }
@@ -392,8 +393,9 @@
                     attendanceMgr.addParticipant(payload.peer_id, payload.username, payload.role);
                     updateParticipantCount(payload.count);
                     chatMgr.appendMessage({ sender: "", payload: { text: `${payload.username} joined` }, timestamp: new Date().toISOString() });
-                    // New peer → initiate WebRTC if one of us is a teacher
-                    if (role === "teacher" || payload.role === "teacher") {
+                    // Only the TEACHER initiates new connections when a student joins
+                    // Students never initiate — they respond to the teacher's offer
+                    if (role === "teacher" && payload.role === "student") {
                         await webrtc.createPeer(payload.peer_id, true);
                     }
                 } else if (payload.event === "left") {
@@ -410,8 +412,8 @@
             }
 
             else if (type === "webrtc_offer") {
-                const senderPart = attendanceMgr.participants.find(p => p.id === msg.sender);
-                if (role === "student" && senderPart && senderPart.role === "student") return; // Students do not connect to students
+                // Students accept offers from teacher; teacher accepts offers from nobody (it only initiates)
+                // Simply accept any offer that arrives — the teacher is always the sender
                 await webrtc.handleOffer(msg.sender, payload.sdp);
             }
             else if (type === "webrtc_answer") {
