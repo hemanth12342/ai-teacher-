@@ -1,7 +1,7 @@
 // --- DEPLOYMENT CONFIGURATION ---
 // IMPORTANT: Replace this with your actual Render URL!
 // Example: "https://teacher-ai-backend.onrender.com"
-const RENDER_BACKEND_URL = "https://your-app.onrender.com";
+const RENDER_BACKEND_URL = "https://ai-teacher-yv61.onrender.com";
 
 const IS_PRODUCTION = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 
