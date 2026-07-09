@@ -720,8 +720,8 @@ button {
 
 .classroom-layout {
     display: grid;
-    grid-template-rows: 64px 1fr 80px;
-    grid-template-columns: 1fr 380px;
+    grid-template-rows: 64px minmax(0, 1fr) 80px;
+    grid-template-columns: minmax(0, 1fr) 380px;
     grid-template-areas:
         "topbar topbar"
         "main   sidebar"
@@ -1073,6 +1073,7 @@ button {
 
 /* ── Chat Input ───────────────────────────────────────── */
 .chat-input-area {
+    flex-shrink: 0;
     padding: 16px;
     background: rgba(3, 7, 18, 0.95);
     border-top: 1px solid rgba(255,255,255,0.05);
@@ -1348,6 +1349,7 @@ button {
 }
 
 .qa-input-area {
+    flex-shrink: 0;
     display: flex;
     gap: 12px;
     background: rgba(3, 7, 18, 0.95);
