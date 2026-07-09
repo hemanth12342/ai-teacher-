@@ -415,16 +415,12 @@
             }
             
             // Case 2: Class has NO password (Unclaimed class)
-            if (!hasPassword) {
-                if (globalRole === "teacher") {
-                    showToast("Please set a password to claim this class first.", "info");
-                } else {
-                    showToast("This class is closed. Please wait for a teacher to open it.", "error");
-                }
+            if (!hasPassword && globalRole === "teacher") {
+                showToast("Please set a password to claim this class first.", "info");
                 return;
             }
             
-            // Case 3: Password exists → show password prompt
+            // Case 3: Password exists (or student trying to join unclaimed class) → show password prompt
             selectedRoom = roomId;
             document.getElementById("modal-room-name").textContent = name;
             document.getElementById("modal-room-desc").textContent = desc || "Enter the room password to join";

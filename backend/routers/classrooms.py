@@ -58,7 +58,7 @@ async def join_classroom(room_id: str, body: JoinRequest):
     else:
         # If class has no password, it's unclaimed. No one can join until a teacher sets one.
         if not cls.get("password"):
-            raise HTTPException(403, "This class is currently closed. A teacher must set a password to open it.")
+            raise HTTPException(403, "The class has not started.")
 
         # Validate password
         if body.password != cls["password"]:
