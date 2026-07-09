@@ -108,6 +108,8 @@
     <!-- Create Classroom Modal -->
     <div class="modal-overlay" id="create-modal">
         <div class="modal">
+            <div class="modal-title">Create Classroom</div>
+            <div class="modal-sub">Set up a new virtual classroom</div>
             <div class="form-group">
                 <label class="form-label" for="create-name">Class Name</label>
                 <input class="form-input" type="text" id="create-name" placeholder="e.g. Machine Learning 101" maxlength="50">
@@ -139,7 +141,8 @@
             <div class="modal-title">Change Password</div>
             <div class="modal-sub">Enter a new password for this class</div>
             <div class="form-group">
-                <input type="password" id="edit-new-password" class="form-control" placeholder="New Password" required>
+                <label class="form-label" for="edit-new-password">New Password</label>
+                <input type="password" id="edit-new-password" class="form-input" placeholder="New Password" required>
             </div>
             <div class="modal-actions">
                 <button class="btn btn-ghost" onclick="closeEditPasswordModal()">Cancel</button>
