@@ -23,7 +23,7 @@ class ChatManager {
         }
 
         const el = document.createElement("div");
-        el.className = `chat-msg${isOwn ? " own" : ""}`;
+        el.className = `chat-msg${isOwn ? " self" : " other"}`;
         const initials = (sender || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
         el.innerHTML = `
       <div class="chat-avatar" title="${this._esc(sender_role || "student")}">${initials}</div>
