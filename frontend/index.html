@@ -350,7 +350,7 @@
         ${releaseBtn}
         ${deleteBtn}
         <button class="btn-join" onclick="event.stopPropagation();openModal('${room.id}','${escHtml(room.name)}','${escHtml(room.description)}','${escHtml(room.owner || '')}', ${!!room.has_password})">
-          ${room.has_password ? 'Join →' : '🔓 Open'}
+          Join →
         </button>
       </div>
     </div>
