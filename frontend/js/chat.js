@@ -46,15 +46,18 @@ class ChatManager {
         el.innerHTML = `
       <div class="chat-avatar">${initials}</div>
       <div>
-        <div class="chat-bubble">
-          <div class="chat-msg-name">${this._esc(sender)}</div>
-          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-            <span style="font-size:1.1rem">${icon}</span>
-            <a href="${(window.API_BASE_URL || '') + (payload?.url || '#')}" target="_blank"
-               style="font-size:0.8rem;color:var(--accent-indigo2)">
-              ${this._esc(payload?.name || "file")}
-            </a>
+        <div class="chat-bubble" style="display:flex; justify-content:space-between; align-items:center; min-width:200px;">
+          <div>
+            <div class="chat-msg-name">${this._esc(sender)}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+              <span style="font-size:1.1rem">${icon}</span>
+              <a href="${(window.API_BASE_URL || '') + (payload?.url || '#')}" target="_blank"
+                 style="font-size:0.85rem;color:var(--accent-indigo2);text-decoration:none;font-weight:600;">
+                ${this._esc(payload?.name || "file")}
+              </a>
+            </div>
           </div>
+          <a href="${(window.API_BASE_URL || '') + (payload?.url || '#')}" target="_blank" class="btn-file-dl" title="Download" style="margin-left: 10px; width: 32px; height: 32px; font-size: 1rem;">⬇</a>
         </div>
       </div>`;
         this.container.appendChild(el);
