@@ -66,7 +66,7 @@
                 </div>
             </div>
             <div class="topbar-right">
-                <button id="btn-change-pwd" class="btn btn-ghost" style="display:none; padding:4px 8px; font-size:0.85rem; border:1px solid var(--border);" onclick="openChangePwdModal()">🔒 Change Password</button>
+                <button id="btn-change-pwd" class="btn btn" style="display:none; padding:4px 8px; font-size:0.85rem; border:1px solid rgba(232, 121, 249, 0.3); background: rgba(232, 121, 249, 0.15); color: var(--accent-fuchsia);" onclick="openChangePwdModal()">🔒 Change Password</button>
                 <button class="btn btn-ghost" style="padding:4px 8px; font-size:0.85rem; border:1px solid var(--border);" onclick="copyShareLink()">🔗 Share Class</button>
                 <div class="participant-count">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -350,10 +350,12 @@
                 if (payload.participants?.length) {
                     attendanceMgr.updateAll(payload.participants);
                     updateParticipantCount(payload.participants.length);
-                    // Initiate WebRTC with existing peers
+                    // Initiate WebRTC with existing peers (only if one of us is a teacher)
                     for (const p of payload.participants) {
                         if (p.peer_id !== payload.peer_id) {
-                            await webrtc.createPeer(p.peer_id, true);
+                            if (role === "teacher" || p.role === "teacher") {
+                                await webrtc.createPeer(p.peer_id, true);
+                            }
                         }
                     }
                 }
@@ -365,8 +367,10 @@
                     attendanceMgr.addParticipant(payload.peer_id, payload.username, payload.role);
                     updateParticipantCount(payload.count);
                     chatMgr.appendMessage({ sender: "", payload: { text: `${payload.username} joined` }, timestamp: new Date().toISOString() });
-                    // New peer → we initiate WebRTC to them
-                    await webrtc.createPeer(payload.peer_id, true);
+                    // New peer → initiate WebRTC if one of us is a teacher
+                    if (role === "teacher" || payload.role === "teacher") {
+                        await webrtc.createPeer(payload.peer_id, true);
+                    }
                 } else if (payload.event === "left") {
                     attendanceMgr.removeParticipant(payload.peer_id);
                     updateParticipantCount(payload.count);
@@ -381,6 +385,8 @@
             }
 
             else if (type === "webrtc_offer") {
+                const senderPart = attendanceMgr.participants.find(p => p.id === msg.sender);
+                if (role === "student" && senderPart && senderPart.role === "student") return; // Students do not connect to students
                 await webrtc.handleOffer(msg.sender, payload.sdp);
             }
             else if (type === "webrtc_answer") {

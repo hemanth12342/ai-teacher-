@@ -551,7 +551,7 @@ button {
 .capacity-bar {
     height: 3px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.12);
     margin-top: 20px;
     overflow: hidden;
 }
@@ -1369,7 +1369,7 @@ button {
 }
 .qa-input:focus {
     border-color: var(--accent-fuchsia);
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.12);
 }
 
 .btn-ask {
@@ -1447,7 +1447,7 @@ button {
     transition: all var(--transition);
 }
 .file-item:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.12);
     border-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -1472,7 +1472,7 @@ button {
     color: var(--text-muted);
 }
 .btn-file-dl {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.12);
     border-radius: 50%;
     width: 40px;
     height: 40px;
