@@ -36,7 +36,7 @@ class SubtitleManager {
 
     _connectWS() {
         const proto = location.protocol === "https:" ? "wss" : "ws";
-        const url = `${proto}://${location.host}/ws/subtitles/${this.roomId}?token=${this.token}`;
+        const url = `${window.WS_BASE_URL}/ws/subtitles/${this.roomId}?token=${this.token}`;
         this.ws = new WebSocket(url);
         this.ws.onmessage = (ev) => {
             try {

@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Teacher — Classroom</title>
     <link rel="stylesheet" href="css/styles.css">
+    <script src="/js/config.js"></script>
 </head>
 
 <body>
@@ -209,7 +210,7 @@
         // ── Room info ─────────────────────────────────────────
         async function loadRoomInfo() {
             try {
-                const r = await fetch(`/api/classrooms/${roomId}`);
+                const r = await fetch(`${window.API_BASE_URL}/api/classrooms/${roomId}`);
                 if (!r.ok) return;
                 const info = await r.json();
                 document.title = `AI Teacher — ${info.name}`;
@@ -232,7 +233,7 @@
         // ── Share Link ────────────────────────────────────────
         async function copyShareLink() {
             try {
-                const r = await fetch(`/api/classrooms/${roomId}/link`);
+                const r = await fetch(`${window.API_BASE_URL}/api/classrooms/${roomId}/link`);
                 if (!r.ok) throw new Error("Failed to get share link");
                 const data = await r.json();
                 await navigator.clipboard.writeText(data.url);
@@ -283,7 +284,7 @@
         // ── WebSocket setup ───────────────────────────────────
         function connectWS() {
             const proto = location.protocol === "https:" ? "wss" : "ws";
-            ws = new WebSocket(`${proto}://${location.host}/ws/${roomId}?token=${token}`);
+            ws = new WebSocket(`${window.WS_BASE_URL}/ws/${roomId}?token=${token}`);
 
             ws.onopen = () => {
                 setStatus("connected", "🟢 Connected");
@@ -520,7 +521,7 @@
             const fd = new FormData();
             fd.append("file", file);
             try {
-                const r = await fetch(`/api/classrooms/${roomId}/upload`, {
+                const r = await fetch(`${window.API_BASE_URL}/api/classrooms/${roomId}/upload`, {
                     method: "POST",
                     headers: { Authorization: `Bearer ${token}` },
                     body: fd,
@@ -544,7 +545,7 @@
 
         async function loadFiles() {
             try {
-                const r = await fetch(`/api/classrooms/${roomId}/files`);
+                const r = await fetch(`${window.API_BASE_URL}/api/classrooms/${roomId}/files`);
                 if (!r.ok) return;
                 const { files } = await r.json();
                 const list = document.getElementById("file-list");

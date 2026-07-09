@@ -65,6 +65,7 @@
             text-decoration: underline;
         }
     </style>
+    <script src="/js/config.js"></script>
 </head>
 <body>
     <div class="bg-grid"></div>
@@ -169,7 +170,7 @@
             err.classList.remove('show');
 
             try {
-                const res = await fetch('/api/auth/reset-password', {
+                const res = await fetch(window.API_BASE_URL + '/api/auth/reset-password', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({username: username, new_password: newPassword})
@@ -203,7 +204,7 @@
             err.classList.remove('show');
 
             try {
-                const res = await fetch('/api/auth/login', {
+                const res = await fetch(window.API_BASE_URL + '/api/auth/login', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({username: u, password: p})
@@ -241,7 +242,7 @@
             err.classList.remove('show');
 
             try {
-                const res = await fetch('/api/auth/register', {
+                const res = await fetch(window.API_BASE_URL + '/api/auth/register', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({username: u, email: e, password: p, role: r})
