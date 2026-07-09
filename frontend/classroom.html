@@ -28,6 +28,24 @@
         </div>
     </div>
 
+    <!-- Change Password Modal -->
+    <div class="modal-overlay" id="change-pwd-modal" style="z-index:9999;">
+        <div class="modal">
+            <div class="modal-title">Change Room Password</div>
+            <div class="modal-sub">Already joined students will stay connected. New students will need the new password.</div>
+            <div class="form-group">
+                <label class="form-label" for="new-room-password">New Password</label>
+                <input type="password" id="new-room-password" class="form-input" placeholder="Enter new password" required>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeChangePwdModal()">Cancel</button>
+                <button class="btn btn-primary" id="btn-confirm-pwd" onclick="confirmChangePwd()">
+                    Update Password
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="classroom-layout" id="classroom-layout">
 
         <!-- ── Top bar ─────────────────────────────────────── -->
@@ -48,6 +66,7 @@
                 </div>
             </div>
             <div class="topbar-right">
+                <button id="btn-change-pwd" class="btn btn-ghost" style="display:none; padding:4px 8px; font-size:0.85rem; border:1px solid var(--border);" onclick="openChangePwdModal()">🔒 Change Password</button>
                 <button class="btn btn-ghost" style="padding:4px 8px; font-size:0.85rem; border:1px solid var(--border);" onclick="copyShareLink()">🔗 Share Class</button>
                 <div class="participant-count">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -557,6 +576,38 @@
             } catch { }
         }
 
+        // ── Change Password ───────────────────────────────────
+        function openChangePwdModal() {
+            document.getElementById("change-pwd-modal").classList.add("active");
+        }
+        function closeChangePwdModal() {
+            document.getElementById("change-pwd-modal").classList.remove("active");
+            document.getElementById("new-room-password").value = "";
+        }
+        async function confirmChangePwd() {
+            const pwd = document.getElementById("new-room-password").value.trim();
+            if (!pwd) return showToast("Password cannot be empty", "error");
+            
+            try {
+                const r = await fetch(`${window.API_BASE_URL}/api/classrooms/${roomId}/password`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ password: pwd })
+                });
+                if (!r.ok) {
+                    const err = await r.json().catch(() => ({}));
+                    throw new Error(err.detail || "Failed to update password");
+                }
+                showToast("Password updated successfully!", "success");
+                closeChangePwdModal();
+            } catch (e) {
+                showToast(e.message, "error");
+            }
+        }
+
         // ── Leave ─────────────────────────────────────────────
         function leaveClassroom() {
             if (!confirm("Leave this classroom?")) return;
@@ -592,6 +643,11 @@
 
             // Update local label
             document.getElementById("local-label").textContent = `${username} (You)`;
+
+            // Show teacher controls
+            if (role === "teacher") {
+                document.getElementById("btn-change-pwd").style.display = "inline-flex";
+            }
 
             // WebRTC
             webrtc = new WebRTCManager(
