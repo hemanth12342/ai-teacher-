@@ -118,7 +118,7 @@
                 <button class="sidebar-tab" data-panel="qa" onclick="switchTab('qa')">🤖 Q&amp;A</button>
                 <button class="sidebar-tab" data-panel="files" onclick="switchTab('files')">📁 Files</button>
                 <button class="sidebar-tab" data-panel="people" onclick="switchTab('people')">👥 People</button>
-                <button class="sidebar-tab" data-panel="cams" onclick="switchTab('cams')">📷 Webcams</button>
+                <button class="sidebar-tab" id="tab-cams" data-panel="cams" onclick="switchTab('cams')" style="display:none;">📷 Webcams</button>
             </div>
 
             
@@ -308,14 +308,25 @@
             lbl.className = "video-tile-label";
             lbl.textContent = label || peerId;
             tile.append(vid, lbl);
-            
-            const isStudent = roleStr === "student";
-            if (isStudent) tile.style.minHeight = "200px"; tile.style.flexShrink = "0";
-            const targetGrid = isStudent ? document.getElementById("student-video-grid") : document.getElementById("video-grid");
-            targetGrid.appendChild(tile);
-            
-            if (!isStudent) updateGridLayout();
+
+            // Routing logic:
+            // - If I am a STUDENT: ALL remote streams (teacher's) go to the main video grid
+            // - If I am a TEACHER: student streams go to Webcams panel, teacher stream goes to main grid
+            const amTeacher = role === "teacher";
+            const isStudentStream = roleStr === "student";
+
+            if (amTeacher && isStudentStream) {
+                // Teacher monitoring student webcams → Webcams panel
+                tile.style.minHeight = "200px";
+                tile.style.flexShrink = "0";
+                document.getElementById("student-video-grid").appendChild(tile);
+            } else {
+                // Student watching teacher, or teacher's own preview → main video grid
+                document.getElementById("video-grid").appendChild(tile);
+                updateGridLayout();
+            }
         }
+
 
         function removeVideoTile(peerId) {
             document.getElementById(`tile-${peerId}`)?.remove();
@@ -678,6 +689,8 @@
             if (role === "teacher") {
                 document.getElementById("btn-change-pwd").style.display = "inline-flex";
                 document.getElementById("local-label").textContent = `${username} (You)`;
+                // Teachers can see the Webcams tab to monitor all students
+                document.getElementById("tab-cams").style.display = "";
             }
 
             // ── For STUDENTS: hide their own tile entirely, show only teacher stream ──
