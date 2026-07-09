@@ -29,17 +29,31 @@
     </div>
 
     <!-- Change Password Modal -->
-    <div class="modal-overlay" id="change-pwd-modal" style="z-index:9999;">
-        <div class="modal" style="background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(232, 121, 249, 0.4); box-shadow: 0 0 30px rgba(232, 121, 249, 0.15);">
-            <div class="modal-title">Change Room Password</div>
-            <div class="modal-sub">Already joined students will stay connected. New students will need the new password.</div>
-            <div class="form-group">
-                <label class="form-label" for="new-room-password">New Password</label>
-                <input type="password" id="new-room-password" class="form-input" placeholder="Enter new password" required>
+    <div class="modal-overlay" id="change-pwd-modal" style="z-index:9999; backdrop-filter: blur(8px);">
+        <div class="modal" style="
+            background: linear-gradient(145deg, #1e1b4b 0%, #1e293b 60%, #0f172a 100%);
+            border: 2px solid #a855f7;
+            box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.3), 0 20px 60px rgba(168, 85, 247, 0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+            border-radius: 20px;
+        ">
+            <div class="modal-title" style="
+                background: linear-gradient(135deg, #e879f9, #818cf8, #38bdf8);
+                -webkit-background-clip: text;
+                background-clip: text;
+                -webkit-text-fill-color: transparent;
+                font-size: 1.5rem;
+                margin-bottom: 6px;
+            ">🔒 Change Room Password</div>
+            <div class="modal-sub" style="color: rgba(200,200,230,0.75); margin-bottom: 24px;">Already joined students stay connected. New students need the new password.</div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label class="form-label" for="new-room-password" style="color: #a5b4fc; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; font-size: 0.75rem;">New Password</label>
+                <input type="password" id="new-room-password" class="form-input" placeholder="Enter new password" required
+                    style="background: rgba(255,255,255,0.08); border: 1.5px solid rgba(168,85,247,0.5); border-radius: 10px; color: #f1f5f9; padding: 12px 16px; font-size: 1rem; width: 100%; outline: none; transition: border-color 0.2s;"
+                    onfocus="this.style.borderColor='#a855f7'" onblur="this.style.borderColor='rgba(168,85,247,0.5)'">
             </div>
-            <div class="modal-actions">
-                <button class="btn btn-ghost" onclick="closeChangePwdModal()">Cancel</button>
-                <button class="btn" style="background: linear-gradient(135deg, var(--accent-fuchsia), var(--accent-indigo)); color: white; border: none;" id="btn-confirm-pwd" onclick="confirmChangePwd()">
+            <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn btn-ghost" onclick="closeChangePwdModal()" style="color: rgba(200,200,230,0.7); border: 1px solid rgba(255,255,255,0.15);">Cancel</button>
+                <button class="btn" style="background: linear-gradient(135deg, #a855f7, #6366f1); color: white; border: none; padding: 10px 22px; border-radius: 10px; font-weight: 700; box-shadow: 0 4px 20px rgba(168,85,247,0.4);" id="btn-confirm-pwd" onclick="confirmChangePwd()">
                     Update Password
                 </button>
             </div>
@@ -660,18 +674,20 @@
                 }
             };
 
-            // Update local label
-            document.getElementById("local-label").textContent = `${username} (You)`;
-            if (role === "student") {
-                const localTile = document.getElementById("tile-local");
-                localTile.style.minHeight = "200px"; localTile.style.flexShrink = "0";
-                document.getElementById("student-video-grid").appendChild(localTile);
-                updateGridLayout();
-            }
-
             // Show teacher controls
             if (role === "teacher") {
                 document.getElementById("btn-change-pwd").style.display = "inline-flex";
+                document.getElementById("local-label").textContent = `${username} (You)`;
+            }
+
+            // ── For STUDENTS: hide their own tile entirely, show only teacher stream ──
+            if (role === "student") {
+                // Completely hide the local video tile — students have no camera
+                const localTile = document.getElementById("tile-local");
+                localTile.style.display = "none";
+                // Hide camera and mic buttons for students
+                document.getElementById("btn-cam").style.display = "none";
+                document.getElementById("btn-mic").style.display = "none";
             }
 
             // WebRTC
@@ -685,13 +701,13 @@
                 (peerId) => removeVideoTile(peerId),
             );
 
-            const enableVideo = role === "teacher";
-            await webrtc.startLocalMedia(document.getElementById("video-local"), enableVideo, true);
-            
-            if (!enableVideo) {
-                document.getElementById("btn-cam").style.display = "none";
-                document.getElementById("video-local").style.display = "none";
-                document.getElementById("local-avatar").style.display = "flex";
+            // Students get NO camera/mic — only audio-free connection to receive teacher stream
+            const isTeacher = role === "teacher";
+            if (isTeacher) {
+                await webrtc.startLocalMedia(document.getElementById("video-local"), true, true);
+            } else {
+                // Student: no camera, no mic — just create an empty stream so WebRTC can still receive
+                webrtc.localStream = new MediaStream();
             }
 
             // Connect WS (this also triggers WebRTC peer setup)
