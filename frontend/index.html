@@ -323,7 +323,7 @@
             }
 
             return `
-  <div class="classroom-card" style="--card-accent:${room.color}" onclick="openModal('${room.id}','${escHtml(room.name)}','${escHtml(room.description)}','${escHtml(room.owner || '')}', ${!!room.password})">
+  <div class="classroom-card" style="--card-accent:${room.color}" onclick="openModal('${room.id}','${escHtml(room.name)}','${escHtml(room.description)}','${escHtml(room.owner || '')}', ${!!room.has_password})">
     <div class="card-header">
       <div class="card-icon" style="background:${room.color}22;color:${room.color}">
         ${emoji}
@@ -349,8 +349,8 @@
         ${editBtn}
         ${releaseBtn}
         ${deleteBtn}
-        <button class="btn-join" onclick="event.stopPropagation();openModal('${room.id}','${escHtml(room.name)}','${escHtml(room.description)}','${escHtml(room.owner || '')}', ${!!room.password})">
-          ${room.password ? 'Join →' : '🔓 Open'}
+        <button class="btn-join" onclick="event.stopPropagation();openModal('${room.id}','${escHtml(room.name)}','${escHtml(room.description)}','${escHtml(room.owner || '')}', ${!!room.has_password})">
+          ${room.has_password ? 'Join →' : '🔓 Open'}
         </button>
       </div>
     </div>

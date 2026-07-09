@@ -21,6 +21,7 @@ def _room_info(cls: dict) -> ClassroomInfo:
         participant_count= manager.participant_count(cls["id"]),
         max_participants = cls["max_participants"],
         is_active        = manager.participant_count(cls["id"]) > 0,
+        has_password     = bool(cls.get("password")),
         owner            = cls.get("owner") or "",
     )
 

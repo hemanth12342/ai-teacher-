@@ -64,6 +64,7 @@ class ClassroomInfo(BaseModel):
     participant_count: int
     max_participants: int
     is_active: bool
+    has_password: bool = False
     owner: str = ""
 
 
