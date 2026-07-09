@@ -1,6 +1,10 @@
 /**
  * WebRTC peer connection manager.
- * Handles N-party video/audio with signaling over a shared WebSocket.
+ *
+ * Two modes:
+ *  - Teacher:  sends camera + audio → all connected peers receive it.
+ *  - Student:  sends nothing → receives teacher's stream only.
+ *              Uses recvonly transceivers so SDP negotiation works correctly.
  */
 class WebRTCManager {
     constructor(ws, stunServers, onStreamAdded, onStreamRemoved) {
@@ -8,9 +12,10 @@ class WebRTCManager {
         this.stunServers = stunServers;
         this.onStreamAdded = onStreamAdded;
         this.onStreamRemoved = onStreamRemoved;
-        this.peers = {};   // peer_id → RTCPeerConnection
+        this.peers = {};           // peer_id → RTCPeerConnection
         this.localStream = null;
         this.myPeerId = null;
+        this.userRole = "student"; // set by classroom.html after init
         this.micMuted = false;
         this.camOff = false;
         this.screenStream = null;
@@ -18,17 +23,16 @@ class WebRTCManager {
 
     // ── Local media ───────────────────────────────────────
 
-    async startLocalMedia(videoEl, videoEnabled = true, audioEnabled = true) {
+    async startLocalMedia(videoEl) {
         try {
             this.localStream = await navigator.mediaDevices.getUserMedia({
-                video: videoEnabled ? { width: { ideal: 3840 }, height: { ideal: 2160 }, facingMode: "user" } : false,
-                audio: audioEnabled ? { echoCancellation: true, noiseSuppression: true } : false,
+                video: { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: "user" },
+                audio: { echoCancellation: true, noiseSuppression: true },
             });
             videoEl.srcObject = this.localStream;
             videoEl.muted = true;   // don't echo yourself
         } catch (e) {
             console.warn("Camera/mic access denied:", e.message);
-            // Create a silent "no-camera" stream so WebRTC can still work
             this.localStream = new MediaStream();
         }
         return this.localStream;
@@ -37,18 +41,28 @@ class WebRTCManager {
     // ── Peer management ───────────────────────────────────
 
     async createPeer(remotePeerId, isInitiator) {
+        // Don't create duplicate connections
+        if (this.peers[remotePeerId]) return this.peers[remotePeerId];
+
         const pc = new RTCPeerConnection({
             iceServers: this.stunServers || [{ urls: "stun:stun.l.google.com:19302" }],
         });
 
-        // Add local tracks
-        if (this.localStream) {
-            this.localStream.getTracks().forEach(track => pc.addTrack(track, this.localStream));
+        if (this.userRole === "teacher") {
+            // Teacher: add real camera + audio tracks so students can receive them
+            if (this.localStream) {
+                this.localStream.getTracks().forEach(track => pc.addTrack(track, this.localStream));
+            }
+        } else {
+            // Student: add recvonly transceivers — no camera sent, but can receive teacher video
+            pc.addTransceiver("video", { direction: "recvonly" });
+            pc.addTransceiver("audio", { direction: "recvonly" });
         }
 
         // Receive remote stream
         pc.ontrack = (event) => {
-            const [remoteStream] = event.streams;
+            const remoteStream = event.streams[0] || new MediaStream([event.track]);
+            console.log("[WebRTC] ontrack fired for", remotePeerId, event.track.kind);
             this.onStreamAdded(remotePeerId, remoteStream);
         };
 
@@ -64,6 +78,7 @@ class WebRTCManager {
         };
 
         pc.onconnectionstatechange = () => {
+            console.log("[WebRTC] connection state →", pc.connectionState, "peer:", remotePeerId);
             if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
                 this.removePeer(remotePeerId);
                 this.onStreamRemoved(remotePeerId);
@@ -139,7 +154,6 @@ class WebRTCManager {
         if (this.screenStream) {
             this.screenStream.getTracks().forEach(t => t.stop());
             this.screenStream = null;
-            // Restore camera
             const camTrack = this.localStream?.getVideoTracks()[0];
             if (camTrack) {
                 Object.values(this.peers).forEach(pc => {

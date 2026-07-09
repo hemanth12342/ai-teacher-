@@ -714,14 +714,14 @@
                 (peerId) => removeVideoTile(peerId),
             );
 
-            // Students get NO camera/mic — only audio-free connection to receive teacher stream
-            const isTeacher = role === "teacher";
-            if (isTeacher) {
-                await webrtc.startLocalMedia(document.getElementById("video-local"), true, true);
-            } else {
-                // Student: no camera, no mic — just create an empty stream so WebRTC can still receive
-                webrtc.localStream = new MediaStream();
+            // Tell WebRTC manager the user role so it uses the right track strategy
+            webrtc.userRole = role;
+
+            if (role === "teacher") {
+                // Teacher: get camera + mic, show local tile
+                await webrtc.startLocalMedia(document.getElementById("video-local"));
             }
+            // Students: skip getUserMedia entirely — recvonly transceivers handle receiving
 
             // Connect WS (this also triggers WebRTC peer setup)
             connectWS();
