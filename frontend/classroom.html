@@ -30,7 +30,7 @@
 
     <!-- Change Password Modal -->
     <div class="modal-overlay" id="change-pwd-modal" style="z-index:9999;">
-        <div class="modal">
+        <div class="modal" style="background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(232, 121, 249, 0.4); box-shadow: 0 0 30px rgba(232, 121, 249, 0.15);">
             <div class="modal-title">Change Room Password</div>
             <div class="modal-sub">Already joined students will stay connected. New students will need the new password.</div>
             <div class="form-group">
@@ -685,7 +685,14 @@
                 (peerId) => removeVideoTile(peerId),
             );
 
-            await webrtc.startLocalMedia(document.getElementById("video-local"));
+            const enableVideo = role === "teacher";
+            await webrtc.startLocalMedia(document.getElementById("video-local"), enableVideo, true);
+            
+            if (!enableVideo) {
+                document.getElementById("btn-cam").style.display = "none";
+                document.getElementById("video-local").style.display = "none";
+                document.getElementById("local-avatar").style.display = "flex";
+            }
 
             // Connect WS (this also triggers WebRTC peer setup)
             connectWS();

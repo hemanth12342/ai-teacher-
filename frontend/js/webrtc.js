@@ -18,11 +18,11 @@ class WebRTCManager {
 
     // ── Local media ───────────────────────────────────────
 
-    async startLocalMedia(videoEl) {
+    async startLocalMedia(videoEl, videoEnabled = true, audioEnabled = true) {
         try {
             this.localStream = await navigator.mediaDevices.getUserMedia({
-                video: { width: { ideal: 3840 }, height: { ideal: 2160 }, facingMode: "user" },
-                audio: { echoCancellation: true, noiseSuppression: true },
+                video: videoEnabled ? { width: { ideal: 3840 }, height: { ideal: 2160 }, facingMode: "user" } : false,
+                audio: audioEnabled ? { echoCancellation: true, noiseSuppression: true } : false,
             });
             videoEl.srcObject = this.localStream;
             videoEl.muted = true;   // don't echo yourself
