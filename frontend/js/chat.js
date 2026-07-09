@@ -50,7 +50,7 @@ class ChatManager {
           <div class="chat-msg-name">${this._esc(sender)}</div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
             <span style="font-size:1.1rem">${icon}</span>
-            <a href="${payload?.url || "#"}" target="_blank"
+            <a href="${(window.API_BASE_URL || '') + (payload?.url || '#')}" target="_blank"
                style="font-size:0.8rem;color:var(--accent-indigo2)">
               ${this._esc(payload?.name || "file")}
             </a>
@@ -82,7 +82,7 @@ class ChatManager {
           <div class="file-name">${file.name || "unknown"}</div>
           <div class="file-meta">${size} · ${file.uploaded_by || "?"} · ${date}</div>
         </div>
-        <a href="${file.url || "#"}" target="_blank" class="btn-file-dl" title="Download">⬇</a>
+        <a href="${(window.API_BASE_URL || '') + (file.url || '#')}" target="_blank" class="btn-file-dl" title="Download">⬇</a>
       </div>`;
     }
 

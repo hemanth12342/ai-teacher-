@@ -639,6 +639,7 @@
                 }
                 showToast("Password updated successfully!", "success");
                 closeEditPasswordModal();
+                loadClassrooms();
             } catch (e) {
                 showToast(e.message, "error");
             } finally {
