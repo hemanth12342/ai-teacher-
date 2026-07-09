@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Teacher — Virtual Classrooms</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+
+    <!-- Background decoration -->
+    <div class="bg-grid"></div>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-logo">
+                <div class="logo-mark">🎓</div>
+                AI Teacher
+            </div>
+            <div style="display:flex;gap:15px;align-items:center">
+                <div class="nav-pill">
+                    <div class="live-dot"></div>
+                    <span id="nav-live-count">0 online</span>
+                </div>
+                <div id="db-status-badge" style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);">
+                    <span id="db-dot" style="width:8px;height:8px;border-radius:50%;background:#6b7280;"></span>
+                    <span id="db-label">DB Checking...</span>
+                </div>
+                <div style="color:var(--text-secondary);font-size:0.9rem;" id="nav-user-info"></div>
+                <button class="btn btn-ghost" style="padding:4px 10px;font-size:0.8rem;" onclick="doLogout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <div class="hero">
+        <div class="container">
+            <div class="hero-eyebrow">✦ AI-Powered Learning Platform</div>
+            <h1>Your virtual classroom,<br>intelligently enhanced</h1>
+            <p>Real-time video, Q&amp;A, live subtitles, auto-attendance, and smart file sharing — all in
+                one seamless experience.</p>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <span class="stat-number" id="stat-rooms">10</span>
+                    <div class="stat-label">Classrooms</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="stat-online">0</span>
+                    <div class="stat-label">Students Online</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">Secure</span>
+                    <div class="stat-label">File Sharing</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">Live</span>
+                    <div class="stat-label">Auto-Subtitles</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Classrooms -->
+    <div class="container" style="position:relative;z-index:1">
+        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="section-title">Available Classrooms</div>
+            <div style="display:flex; align-items:center; gap: 12px;">
+                <button class="btn btn-primary" id="btn-create-class" style="padding:6px 12px;font-size:0.85rem;" onclick="openCreateModal()">+ Create Class</button>
+                <div class="section-count" id="section-count">Loading…</div>
+            </div>
+        </div>
+        <div class="classroom-grid" id="classroom-grid">
+            <!-- Cards injected by JS -->
+            <div class="classroom-card" style="animation:none">
+                <div style="text-align:center;padding:40px;color:var(--text-muted)">Loading classrooms…</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Password / Join Modal -->
+    <div class="modal-overlay" id="join-modal">
+        <div class="modal">
+            <div class="modal-title" id="modal-room-name">Join Classroom</div>
+            <div class="modal-sub" id="modal-room-desc">Enter the room password to join</div>
+            <div class="form-group">
+                <label class="form-label" for="input-password">Room Password</label>
+                <input class="form-input" type="password" id="input-password" placeholder="Enter password">
+                <div class="form-error" id="form-error">Incorrect password. Please try again.</div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" id="btn-join-confirm" onclick="confirmJoin()">
+                    Enter Classroom →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Classroom Modal -->
+    <div class="modal-overlay" id="create-modal">
+        <div class="modal">
+            <div class="form-group">
+                <label class="form-label" for="create-name">Class Name</label>
+                <input class="form-input" type="text" id="create-name" placeholder="e.g. Machine Learning 101" maxlength="50">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="create-subject">Subject</label>
+                <input class="form-input" type="text" id="create-subject" placeholder="e.g. Computer Science" maxlength="50">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="create-password">Set Password</label>
+                <input class="form-input" type="text" id="create-password" placeholder="e.g. secret123" maxlength="30">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="create-desc">Description (Optional)</label>
+                <input class="form-input" type="text" id="create-desc" placeholder="Brief description of the class">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeCreateModal()">Cancel</button>
+                <button class="btn btn-primary" id="btn-create-confirm" onclick="confirmCreate()">
+                    Create Class →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Password Modal -->
+    <div class="modal-overlay" id="edit-password-modal">
+        <div class="modal">
+            <div class="modal-title">Change Password</div>
+            <div class="modal-sub">Enter a new password for this class</div>
+            <div class="form-group">
+                <input type="password" id="edit-new-password" class="form-control" placeholder="New Password" required>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeEditPasswordModal()">Cancel</button>
+                <button class="btn btn-primary" id="btn-edit-password-confirm" onclick="confirmEditPassword()">
+                    Update Password
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Class Info Modal -->
+    <div class="modal-overlay" id="edit-info-modal">
+        <div class="modal">
+            <div class="modal-title">Edit Class Info</div>
+            <div class="modal-sub">Update the class name or description</div>
+            <div class="form-group">
+                <label class="form-label" for="edit-info-name">Class Name</label>
+                <input type="text" id="edit-info-name" class="form-input" placeholder="Class Name" maxlength="50">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="edit-info-desc">Description</label>
+                <textarea id="edit-info-desc" class="form-input" placeholder="Short description" rows="3" maxlength="200" style="resize:vertical;"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeEditInfoModal()">Cancel</button>
+                <button class="btn btn-primary" id="btn-edit-info-confirm" onclick="confirmEditInfo()">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // ── Auth Check ────────────────────────────────────────────
+        if (!localStorage.getItem("global_token")) {
+            window.location.href = "login.html";
+        }
+        
+        const globalUsername = localStorage.getItem("global_username");
+        const globalRole = localStorage.getItem("global_role");
+        
+        document.getElementById("nav-user-info").textContent = `${globalUsername} (${globalRole})`;
+
+        // ── NeonDB Status Indicator ──────────────────────────
+        async function checkDbStatus() {
+            const dot = document.getElementById("db-dot");
+            const label = document.getElementById("db-label");
+            try {
+                const r = await fetch("/api/db-status");
+                const data = await r.json();
+                if (data.connected) {
+                    dot.style.background = "#34d399";
+                    label.textContent = "NeonDB Connected";
+                    label.style.color = "var(--success)";
+                } else {
+                    dot.style.background = "#ef4444";
+                    label.textContent = "NeonDB Offline";
+                }
+            } catch {
+                dot.style.background = "#ef4444";
+                label.textContent = "DB Error";
+            }
+        }
+        checkDbStatus();
+        setInterval(checkDbStatus, 5000);
+        if (globalRole === "student") {
+            document.getElementById("btn-create-class").style.display = "none";
+        }
+
+        function doLogout() {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = "login.html";
+        }
+
+        // ── State ─────────────────────────────────────────────────
+        let selectedRoom = null;
+
+        const ROOM_EMOJIS = {
+            "cls-101": "🤖", "cls-102": "📐", "cls-103": "💻",
+            "cls-104": "📊", "cls-105": "🔐", "cls-106": "☁️",
+            "cls-107": "📱", "cls-108": "📋", "cls-109": "🎨",
+            "cls-110": "📚",
+        };
+
+        // ── Toast ─────────────────────────────────────────────────
+        function showToast(msg, type = "info") {
+            const el = document.createElement("div");
+            el.className = `toast ${type}`;
+            el.innerHTML = `<span>${type === "success" ? "✓" : type === "error" ? "✕" : "ℹ"}</span> ${msg}`;
+            document.getElementById("toast-container").appendChild(el);
+            setTimeout(() => el.remove(), 3500);
+        }
+
+        // ── Fetch classrooms ──────────────────────────────────────
+        async function loadClassrooms() {
+            try {
+                const r = await fetch("/api/classrooms");
+                if (!r.ok) throw new Error("API error");
+                const rooms = await r.json();
+                renderGrid(rooms);
+                const total = rooms.reduce((s, r) => s + r.participant_count, 0);
+                document.getElementById("stat-online").textContent = total;
+                document.getElementById("nav-live-count").textContent = `${total} online`;
+                document.getElementById("section-count").textContent = `${rooms.length} rooms`;
+            } catch (e) {
+                document.getElementById("classroom-grid").innerHTML = `
+      <div class="classroom-card" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)">
+        <div style="font-size:2rem;margin-bottom:12px">⚡</div>
+        <div style="margin-bottom:8px;color:var(--text-secondary);font-weight:600">Backend not running</div>
+        <div style="font-size:0.8rem">Start with: <code style="color:var(--accent-cyan)">uvicorn backend.main:app --reload --port 8000</code></div>
+      </div>`;
+                document.getElementById("section-count").textContent = "Backend offline";
+                // Still render static cards from config for preview
+                renderStaticPreview();
+            }
+        }
+
+        function renderStaticPreview() {
+            const staticRooms = [
+                { id: "cls-101", name: "Introduction to AI", subject: "Computer Science", description: "Foundations of AI, ML, and neural networks.", color: "#6366f1", participant_count: 0, max_participants: 30, is_active: false },
+                { id: "cls-102", name: "Advanced Mathematics", subject: "Mathematics", description: "Calculus, linear algebra, and discrete math.", color: "#22d3ee", participant_count: 0, max_participants: 25, is_active: false },
+                { id: "cls-103", name: "Web Development", subject: "Programming", description: "Full-stack React, Node.js, and modern frameworks.", color: "#f59e0b", participant_count: 0, max_participants: 30, is_active: false },
+                { id: "cls-104", name: "Data Science", subject: "Data Science", description: "Statistical analysis and predictive modeling.", color: "#10b981", participant_count: 0, max_participants: 25, is_active: false },
+                { id: "cls-105", name: "Cybersecurity", subject: "Security", description: "Network security, ethical hacking, cryptography.", color: "#ef4444", participant_count: 0, max_participants: 20, is_active: false },
+                { id: "cls-106", name: "Cloud Computing", subject: "Infrastructure", description: "AWS, Azure, GCP, and DevOps practices.", color: "#8b5cf6", participant_count: 0, max_participants: 25, is_active: false },
+                { id: "cls-107", name: "Digital Marketing", subject: "Marketing", description: "SEO, social media, analytics, and growth.", color: "#ec4899", participant_count: 0, max_participants: 35, is_active: false },
+                { id: "cls-108", name: "Business Management", subject: "Business", description: "Strategy, leadership, and organizational behavior.", color: "#f97316", participant_count: 0, max_participants: 40, is_active: false },
+                { id: "cls-109", name: "Graphic Design", subject: "Design", description: "Typography, color theory, and Adobe Suite.", color: "#14b8a6", participant_count: 0, max_participants: 20, is_active: false },
+                { id: "cls-110", name: "English Literature", subject: "Humanities", description: "Classic literature and critical analysis.", color: "#a78bfa", participant_count: 0, max_participants: 30, is_active: false },
+            ];
+            renderGrid(staticRooms);
+        }
+
+        function renderGrid(rooms) {
+            const grid = document.getElementById("classroom-grid");
+            
+            // Filter out teacher-only rooms for students
+            if (globalRole === "student") {
+                rooms = rooms.filter(room => room.id !== "cls-teacher-meeting");
+            }
+            
+            grid.innerHTML = rooms.map(room => buildCard(room)).join("");
+        }
+
+        function buildCard(room) {
+            const emoji = ROOM_EMOJIS[room.id] || "📖";
+            const pct = room.max_participants ? (room.participant_count / room.max_participants * 100) : 0;
+            const statusBadge = room.is_active
+                ? `<span class="badge badge-active"><span style="width:5px;height:5px;border-radius:50%;background:#34d399;display:inline-block"></span> Active</span>`
+                : `<span class="badge badge-empty">Empty</span>`;
+                
+            let deleteBtn = "";
+            let editBtn = "";
+            let releaseBtn = "";
+            let editInfoBtn = "";
+            const hasPassword = !!room.owner;
+            let ownerBadge = room.owner
+                ? `<div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">Teacher: ${escHtml(room.owner)}</div>`
+                : `<div style="font-size: 0.8rem; color: #f59e0b; margin-top: 4px;">⚠ No teacher assigned yet</div>`;
+
+            if (globalRole === "teacher") {
+                // Default seeded classes have IDs like cls-101 to cls-110 (3-digit suffix)
+                const isDefaultClass = /^cls-\d{3}$/.test(room.id);
+
+                if (room.owner === globalUsername) {
+                    // I own this class — Edit Info + Change Password + Release Ownership + (Delete if not default)
+                    editInfoBtn = `<button class="btn btn-ghost" style="padding:4px 8px; font-size:0.8rem; color: #a78bfa; border: 1px solid #a78bfa; margin-right: 8px;" onclick="event.stopPropagation();openEditInfoModal('${room.id}','${escHtml(room.name)}','${escHtml(room.description)}')">Edit Info</button>`;
+                    editBtn = `<button class="btn btn-ghost" style="padding:4px 8px; font-size:0.8rem; color: #3b82f6; border: 1px solid #3b82f6; margin-right: 8px;" onclick="event.stopPropagation();openEditPasswordModal('${room.id}')">Change Password</button>`;
+                    releaseBtn = `<button class="btn btn-ghost" style="padding:4px 8px; font-size:0.8rem; color: #f59e0b; border: 1px solid #f59e0b; margin-right: 8px;" onclick="event.stopPropagation();releaseOwnership('${room.id}','${escHtml(room.name)}')">Release Ownership</button>`;
+                    if (!isDefaultClass) {
+                        deleteBtn = `<button class="btn btn-ghost" style="padding:4px 8px; font-size:0.8rem; color: #ef4444; border: 1px solid #ef4444; margin-right: 8px;" onclick="event.stopPropagation();deleteRoom('${room.id}')">Delete</button>`;
+                    }
+                } else if (!room.owner) {
+                    // Unclaimed class — any teacher can set a password to claim it
+                    editBtn = `<button class="btn btn-ghost" style="padding:4px 8px; font-size:0.8rem; color: #f59e0b; border: 1px solid #f59e0b; margin-right: 8px;" onclick="event.stopPropagation();openEditPasswordModal('${room.id}')">Set Password</button>`;
+                }
+                // else: owned by another teacher — no edit button shown
+            }
+
+            return `
+  <div class="classroom-card" style="--card-accent:${room.color}" onclick="openModal('${room.id}','${escHtml(room.name)}','${escHtml(room.description)}','${escHtml(room.owner || '')}', ${!!room.password})">
+    <div class="card-header">
+      <div class="card-icon" style="background:${room.color}22;color:${room.color}">
+        ${emoji}
+      </div>
+      <div class="card-badges">
+        ${statusBadge}
+        <span class="badge badge-subject">${escHtml(room.subject)}</span>
+      </div>
+    </div>
+    <div class="card-name">${escHtml(room.name)}</div>
+    <div class="card-desc">${escHtml(room.description)}</div>
+    ${ownerBadge}
+    <div class="card-footer">
+      <div class="card-participants">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        ${room.participant_count} online
+      </div>
+      <div>
+        ${editInfoBtn}
+        ${editBtn}
+        ${releaseBtn}
+        ${deleteBtn}
+        <button class="btn-join" onclick="event.stopPropagation();openModal('${room.id}','${escHtml(room.name)}','${escHtml(room.description)}','${escHtml(room.owner || '')}', ${!!room.password})">
+          ${room.password ? 'Join →' : '🔓 Open'}
+        </button>
+      </div>
+    </div>
+    <div class="capacity-bar"><div class="capacity-fill" style="width:${pct}%"></div></div>
+  </div>`;
+        }
+
+        function escHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+        async function releaseOwnership(roomId, roomName) {
+            if (!confirm(`Release ownership of "${roomName}"?\n\nThis will:\n✓ Remove you as the teacher/owner\n✓ Clear the class password\n✓ Make the class open to all (free entry)\n\nAny other teacher can then claim it.`)) return;
+
+            try {
+                const token = localStorage.getItem("global_token");
+                const r = await fetch(`/api/classrooms/${roomId}/ownership`, {
+                    method: "DELETE",
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                if (!r.ok) {
+                    const err = await r.json().catch(() => ({}));
+                    throw new Error(err.detail || "Failed to release ownership");
+                }
+                showToast("Ownership released. Class is now open.", "success");
+                loadClassrooms();
+            } catch (e) {
+                showToast(e.message, "error");
+            }
+        }
+
+        async function deleteRoom(roomId) {
+            if (!confirm("Are you sure you want to delete this class?")) return;
+            try {
+                const token = localStorage.getItem("global_token");
+                const res = await fetch(`/api/classrooms/${roomId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || "Failed to delete");
+                }
+                showToast("Class deleted successfully!", "success");
+                loadClassrooms();
+            } catch (e) {
+                showToast(e.message, "error");
+            }
+        }
+
+        function openModal(roomId, name, desc, owner, hasPassword) {
+            // Case 1: Teacher Meeting Room
+            if (roomId === "cls-teacher-meeting") {
+                if (globalRole === "teacher") {
+                    joinAsOwner(roomId); // They don't need a password for this room
+                }
+                return;
+            }
+
+            // Case 2: Teacher is the owner → join directly (no popup)
+            if (globalRole === "teacher" && owner === globalUsername) {
+                joinAsOwner(roomId);
+                return;
+            }
+            
+            // Case 2: Class has NO password (Unclaimed class)
+            if (!hasPassword) {
+                if (globalRole === "teacher") {
+                    showToast("Please set a password to claim this class first.", "info");
+                } else {
+                    showToast("This class is closed. Please wait for a teacher to open it.", "error");
+                }
+                return;
+            }
+            
+            // Case 3: Password exists → show password prompt
+            selectedRoom = roomId;
+            document.getElementById("modal-room-name").textContent = name;
+            document.getElementById("modal-room-desc").textContent = desc || "Enter the room password to join";
+            document.getElementById("input-password").value = "";
+            document.getElementById("form-error").classList.remove("show");
+            document.getElementById("join-modal").classList.add("active");
+            setTimeout(() => document.getElementById("input-password").focus(), 100);
+        }
+
+        function closeModal() {
+            document.getElementById("join-modal").classList.remove("active");
+            selectedRoom = null;
+        }
+
+        // Close on overlay click
+        document.getElementById("join-modal").addEventListener("click", function (e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Enter key
+        document.getElementById("input-password").addEventListener("keydown", e => {
+            if (e.key === "Enter") confirmJoin();
+        });
+
+        async function confirmJoin() {
+            const username = globalUsername;
+            const role = globalRole;
+            const password = document.getElementById("input-password").value;
+
+            if (!password) {
+                document.getElementById("input-password").focus();
+                return;
+            }
+
+            const btn = document.getElementById("btn-join-confirm");
+            btn.textContent = "Joining…";
+            btn.disabled = true;
+
+            try {
+                const r = await fetch(`/api/classrooms/${selectedRoom}/join`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password, username, role }),
+                });
+                if (!r.ok) {
+                    const err = await r.json().catch(() => ({}));
+                    throw new Error(err.detail || "Wrong password");
+                }
+                const data = await r.json();
+                sessionStorage.setItem("ai_teacher_token", data.token);
+                sessionStorage.setItem("ai_teacher_username", data.username);
+                sessionStorage.setItem("ai_teacher_role", data.role);
+                sessionStorage.setItem("ai_teacher_room", data.classroom_id);
+                window.location.href = `classroom.html?room=${selectedRoom}`;
+            } catch (e) {
+                const errEl = document.getElementById("form-error");
+                errEl.textContent = e.message;
+                errEl.classList.add("show");
+                btn.textContent = "Enter Classroom →";
+                btn.disabled = false;
+            }
+        }
+
+        async function joinAsOwner(roomId) {
+            showToast("Joining your class...");
+            try {
+                const token = localStorage.getItem("global_token");
+                const r = await fetch(`/api/classrooms/${roomId}/join_as_owner`, {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ password: "", username: globalUsername, role: globalRole })
+                });
+                if (!r.ok) {
+                    const err = await r.json().catch(() => ({}));
+                    throw new Error(err.detail || "Failed to join as owner");
+                }
+                const data = await r.json();
+                sessionStorage.setItem("ai_teacher_token", data.token);
+                sessionStorage.setItem("ai_teacher_username", data.username);
+                sessionStorage.setItem("ai_teacher_role", data.role);
+                sessionStorage.setItem("ai_teacher_room", data.classroom_id);
+                window.location.href = `classroom.html?room=${roomId}`;
+            } catch (e) {
+                showToast(e.message, "error");
+            }
+        }
+
+        async function joinFree(roomId) {
+            // Join a class that has no password set yet
+            showToast("Entering open class...");
+            try {
+                const r = await fetch(`/api/classrooms/${roomId}/join`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password: "", username: globalUsername, role: globalRole })
+                });
+                if (!r.ok) {
+                    const err = await r.json().catch(() => ({}));
+                    throw new Error(err.detail || "Failed to join");
+                }
+                const data = await r.json();
+                sessionStorage.setItem("ai_teacher_token", data.token);
+                sessionStorage.setItem("ai_teacher_username", data.username);
+                sessionStorage.setItem("ai_teacher_role", data.role);
+                sessionStorage.setItem("ai_teacher_room", data.classroom_id);
+                window.location.href = `classroom.html?room=${roomId}`;
+            } catch (e) {
+                showToast(e.message, "error");
+            }
+        }
+
+        // ── Create Modal ──────────────────────────────────────────
+        function openCreateModal() {
+            document.getElementById("create-modal").classList.add("active");
+            setTimeout(() => document.getElementById("create-username").focus(), 100);
+        }
+
+        function closeCreateModal() {
+            document.getElementById("create-modal").classList.remove("active");
+        }
+
+        document.getElementById("create-modal").addEventListener("click", function (e) {
+            if (e.target === this) closeCreateModal();
+        });
+
+        async function confirmCreate() {
+            const username = globalUsername;
+            const name = document.getElementById("create-name").value.trim();
+            const subject = document.getElementById("create-subject").value.trim() || "General";
+            const password = document.getElementById("create-password").value.trim();
+            const description = document.getElementById("create-desc").value.trim();
+
+            if (!name) return document.getElementById("create-name").focus();
+            if (!password) return document.getElementById("create-password").focus();
+
+            const btn = document.getElementById("btn-create-confirm");
+            btn.textContent = "Creating…";
+            btn.disabled = true;
+
+            try {
+                const payload = {
+                    name, subject, password, username, description, max_participants: 30
+                };
+                const token = localStorage.getItem("global_token");
+                const r = await fetch(`/api/classrooms/create`, {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload),
+                });
+                if (!r.ok) {
+                    const err = await r.json().catch(() => ({}));
+                    throw new Error(err.detail || "Failed to create class");
+                }
+                const data = await r.json();
+                sessionStorage.setItem("ai_teacher_token", data.token);
+                sessionStorage.setItem("ai_teacher_username", data.username);
+                sessionStorage.setItem("ai_teacher_role", data.role);
+                sessionStorage.setItem("ai_teacher_room", data.classroom_id);
+                window.location.href = `classroom.html?room=${data.classroom_id}`;
+            } catch (e) {
+                showToast(e.message, "error");
+                btn.textContent = "Create Class →";
+                btn.disabled = false;
+            }
+        }
+
+        // ── Edit Password Modal ───────────────────────────────────
+        let editingRoomId = null;
+
+        function openEditPasswordModal(roomId) {
+            editingRoomId = roomId;
+            document.getElementById("edit-new-password").value = "";
+            document.getElementById("edit-password-modal").classList.add("active");
+            setTimeout(() => document.getElementById("edit-new-password").focus(), 100);
+        }
+
+        function closeEditPasswordModal() {
+            document.getElementById("edit-password-modal").classList.remove("active");
+        }
+
+        document.getElementById("edit-password-modal").addEventListener("click", function (e) {
+            if (e.target === this) closeEditPasswordModal();
+        });
+
+        async function confirmEditPassword() {
+            const new_password = document.getElementById("edit-new-password").value.trim();
+            if (!new_password) {
+                document.getElementById("edit-new-password").focus();
+                return;
+            }
+
+            const btn = document.getElementById("btn-edit-password-confirm");
+            btn.textContent = "Updating...";
+            btn.disabled = true;
+
+            try {
+                const token = localStorage.getItem("global_token");
+                const r = await fetch(`/api/classrooms/${editingRoomId}/password`, {
+                    method: "PUT",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ new_password })
+                });
+                if (!r.ok) {
+                    const err = await r.json().catch(() => ({}));
+                    throw new Error(err.detail || "Failed to update password");
+                }
+                showToast("Password updated successfully!", "success");
+                closeEditPasswordModal();
+            } catch (e) {
+                showToast(e.message, "error");
+            } finally {
+                btn.textContent = "Update Password";
+                btn.disabled = false;
+            }
+        }
+
+        // ── Edit Info Modal ───────────────────────────────────────
+        let editingInfoRoomId = null;
+
+        function openEditInfoModal(roomId, currentName, currentDesc) {
+            editingInfoRoomId = roomId;
+            document.getElementById("edit-info-name").value = currentName || "";
+            document.getElementById("edit-info-desc").value = currentDesc || "";
+            document.getElementById("edit-info-modal").classList.add("active");
+            setTimeout(() => document.getElementById("edit-info-name").focus(), 100);
+        }
+
+        function closeEditInfoModal() {
+            document.getElementById("edit-info-modal").classList.remove("active");
+        }
+
+        document.getElementById("edit-info-modal").addEventListener("click", function (e) {
+            if (e.target === this) closeEditInfoModal();
+        });
+
+        async function confirmEditInfo() {
+            const name = document.getElementById("edit-info-name").value.trim();
+            const description = document.getElementById("edit-info-desc").value.trim();
+            if (!name) { document.getElementById("edit-info-name").focus(); return; }
+
+            const btn = document.getElementById("btn-edit-info-confirm");
+            btn.textContent = "Saving...";
+            btn.disabled = true;
+            try {
+                const token = localStorage.getItem("global_token");
+                const r = await fetch(`/api/classrooms/${editingInfoRoomId}/info`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                    body: JSON.stringify({ name, description })
+                });
+                if (!r.ok) {
+                    const err = await r.json().catch(() => ({}));
+                    throw new Error(err.detail || "Failed to update");
+                }
+                showToast("Class info updated!", "success");
+                closeEditInfoModal();
+                loadClassrooms();
+            } catch (e) {
+                showToast(e.message, "error");
+            } finally {
+                btn.textContent = "Save Changes";
+                btn.disabled = false;
+            }
+        }
+
+        // ── Init ──────────────────────────────────────────────────
+        loadClassrooms().then(() => {
+            const joinRoomId = new URLSearchParams(window.location.search).get("join");
+            if (joinRoomId) {
+                const cards = document.querySelectorAll(".classroom-card");
+                for (let card of cards) {
+                    if (card.getAttribute("onclick") && card.getAttribute("onclick").includes(`'${joinRoomId}'`)) {
+                        card.click();
+                        window.history.replaceState({}, document.title, "/");
+                        break;
+                    }
+                }
+            }
+        });
+        setInterval(loadClassrooms, 10000); // Refresh counts every 10s
+    </script>
+</body>
+
+</html>

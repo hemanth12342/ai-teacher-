@@ -1,0 +1,123 @@
+[
+  {
+    "id": "cls-101",
+    "name": "Introduction to AI",
+    "slug": "intro-ai",
+    "subject": "Computer Science",
+    "password": "ai2024",
+    "description": "Foundations of artificial intelligence, machine learning basics, and neural networks.",
+    "color": "#6366f1",
+    "max_participants": 30,
+    "owner": "hemanth"
+  },
+  {
+    "id": "cls-102",
+    "name": "Advanced Mathematics",
+    "slug": "adv-math",
+    "subject": "Mathematics",
+    "password": "math2024",
+    "description": "Calculus, linear algebra, and discrete mathematics for engineering students.",
+    "color": "#22d3ee",
+    "max_participants": 25,
+    "owner": "hemanth"
+  },
+  {
+    "id": "cls-103",
+    "name": "Web Development",
+    "slug": "web-dev",
+    "subject": "Programming",
+    "password": "web2024",
+    "description": "Full-stack web development using React, Node.js, and modern frameworks.",
+    "color": "#f59e0b",
+    "max_participants": 30,
+    "owner": "hemanth"
+  },
+  {
+    "id": "cls-104",
+    "name": "Data Science & Analytics",
+    "slug": "data-science",
+    "subject": "Data Science",
+    "password": "data2024",
+    "description": "Statistical analysis, data visualization, and predictive modeling with Python.",
+    "color": "#10b981",
+    "max_participants": 25,
+    "owner": "hemanth"
+  },
+  {
+    "id": "cls-105",
+    "name": "Cybersecurity Essentials",
+    "slug": "cybersec",
+    "subject": "Security",
+    "password": "cyber2024",
+    "description": "Network security, ethical hacking, cryptography, and threat analysis.",
+    "color": "#ef4444",
+    "max_participants": 20,
+    "owner": "hemanth"
+  },
+  {
+    "id": "cls-106",
+    "name": "Cloud Computing",
+    "slug": "cloud",
+    "subject": "Infrastructure",
+    "password": "cloud2024",
+    "description": "AWS, Azure, GCP architecture, serverless computing, and DevOps practices.",
+    "color": "#8b5cf6",
+    "max_participants": 25,
+    "owner": "hemanth"
+  },
+  {
+    "id": "cls-107",
+    "name": "Digital Marketing",
+    "slug": "digital-mktg",
+    "subject": "Marketing",
+    "password": "mktg2024",
+    "description": "SEO, social media strategy, analytics, and growth marketing techniques.",
+    "color": "#ec4899",
+    "max_participants": 35,
+    "owner": "hemanth"
+  },
+  {
+    "id": "cls-108",
+    "name": "Business Management",
+    "slug": "biz-mgmt",
+    "subject": "Business",
+    "password": "biz2024",
+    "description": "Organizational behavior, strategic planning, and leadership principles.",
+    "color": "#f97316",
+    "max_participants": 40,
+    "owner": "hemanth"
+  },
+  {
+    "id": "cls-109",
+    "name": "Graphic Design",
+    "slug": "graphic-design",
+    "subject": "Design",
+    "password": "design2024",
+    "description": "Visual communication, typography, color theory, and Adobe Creative Suite.",
+    "color": "#14b8a6",
+    "max_participants": 20,
+    "owner": "hemanth"
+  },
+  {
+    "id": "cls-110",
+    "name": "English Literature",
+    "slug": "eng-lit",
+    "subject": "Humanities",
+    "password": "lit2024",
+    "description": "Classic and contemporary literature, critical analysis, and creative writing.",
+    "color": "#a78bfa",
+    "max_participants": 30,
+    "owner": "hemanth"
+  },
+  {
+    "id": "cls-8a7041cf",
+    "name": "hiiiii",
+    "slug": "hiiiii",
+    "subject": "computer",
+    "password": "12345",
+    "description": "",
+    "color": "#22d3ee",
+    "max_participants": 30,
+    "owner": "hemanth4205"
+  }
+]

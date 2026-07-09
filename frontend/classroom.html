@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Teacher — Classroom</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div id="waiting-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:9999; flex-direction:column; align-items:center; justify-content:center; color:var(--text-main);">
+        <h2 id="waiting-title">Waiting for host teacher to let you in...</h2>
+        <p id="waiting-subtitle" style="color:var(--text-muted); margin-top:10px;">Please wait while the host approves your request.</p>
+        <button class="btn btn-outline" style="margin-top:20px;" onclick="window.location.href='/'">Go Back</button>
+    </div>
+
+    <!-- Teacher Admit Modal -->
+    <div id="admit-modal" class="modal-overlay" style="display:none; z-index:9999;">
+        <div class="modal-content">
+            <h3 style="margin-top:0">Teacher Wants to Join</h3>
+            <p id="admit-text" style="color:var(--text-muted); margin-bottom:20px;">Teacher [Name] wants to join.</p>
+            <div style="display:flex; justify-content:flex-end; gap:10px">
+                <button class="btn btn-outline" style="color:var(--accent-rose);border-color:var(--accent-rose)" id="admit-deny-btn">Deny</button>
+                <button class="btn btn-primary" id="admit-accept-btn">Admit</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="classroom-layout" id="classroom-layout">
+
+        <!-- ── Top bar ─────────────────────────────────────── -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <a href="/" style="font-size:1.1rem;text-decoration:none" title="Back to lobby">🎓</a>
+                <div class="separator"></div>
+                <div>
+                    <div class="room-badge" id="room-name">Classroom</div>
+                    <div class="room-subject" id="room-subject">Loading…</div>
+                </div>
+            </div>
+            <div class="topbar-center">
+                <div class="topbar-timer" id="session-timer">00:00</div>
+                <div class="nav-pill" id="conn-status">
+                    <div class="live-dot" style="background:var(--text-muted)" id="status-dot"></div>
+                    <span id="status-text">Connecting…</span>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <button class="btn btn-ghost" style="padding:4px 8px; font-size:0.85rem; border:1px solid var(--border);" onclick="copyShareLink()">🔗 Share Class</button>
+                <div class="participant-count">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                    <span id="part-count">0</span> online
+                </div>
+                <button class="btn-leave" onclick="leaveClassroom()">Leave ✕</button>
+            </div>
+        </header>
+
+        <!-- ── Main video area ────────────────────────────── -->
+        <main class="main-area">
+            <div class="video-grid" id="video-grid" data-count="1">
+                <!-- Local video tile always present -->
+                <div class="video-tile" id="tile-local">
+                    <video id="video-local" autoplay muted playsinline></video>
+                    <div class="video-tile-label" id="local-label">You</div>
+                    <div class="video-tile-avatar" id="local-avatar" style="display:none">👤</div>
+                </div>
+            </div>
+            <!-- Subtitle overlay -->
+            <div class="subtitle-overlay">
+                <div class="subtitle-text" id="subtitle-text"></div>
+            </div>
+        </main>
+
+        <!-- ── Sidebar ─────────────────────────────────────── -->
+        <aside class="sidebar">
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" data-panel="chat" onclick="switchTab('chat')">💬 Chat</button>
+                <button class="sidebar-tab" data-panel="qa" onclick="switchTab('qa')">🤖 Q&amp;A</button>
+                <button class="sidebar-tab" data-panel="files" onclick="switchTab('files')">📁 Files</button>
+                <button class="sidebar-tab" data-panel="people" onclick="switchTab('people')">👥 People</button>
+            </div>
+
+            <!-- Chat panel -->
+            <div class="sidebar-panel active" id="panel-chat">
+                <div class="chat-messages" id="chat-messages"></div>
+                <div class="chat-input-area">
+                    <textarea class="chat-input" id="chat-input" rows="1" placeholder="Type a message…"></textarea>
+                    <button class="btn-send" id="btn-send" title="Send">➤</button>
+                </div>
+            </div>
+
+            <!-- Q&A panel -->
+            <div class="sidebar-panel" id="panel-qa">
+                <div class="qa-panel" style="overflow-y:auto;flex:1">
+                    <div class="qa-track teacher">
+                        <div class="qa-track-header">📘 Teacher Answer</div>
+                        <div class="qa-track-body" id="qa-teacher-body">Ask a question to see the teacher's response
+                            here.</div>
+                    </div>
+
+                </div>
+                <div style="padding:12px;border-top:1px solid var(--border);flex-shrink:0">
+                    <div class="qa-input-area">
+                        <input class="qa-input" type="text" id="qa-input" placeholder="Ask the teacher…">
+                        <button class="btn-ask" id="qa-send">Ask</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Files panel -->
+            <div class="sidebar-panel" id="panel-files">
+                <div class="files-panel" id="files-panel">
+                    <div class="file-upload-area" id="upload-area"
+                        onclick="document.getElementById('file-input').click()" ondrop="handleDrop(event)"
+                        ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                        <input type="file" id="file-input" style="display:none" accept=".pdf,.docx,.txt,.xlsx"
+                            onchange="uploadFile(event)">
+                        <div class="file-upload-icon">📤</div>
+                        <div class="file-upload-text">Drop files or click to upload</div>
+                        <div class="file-upload-sub">PDF, DOCX, TXT, XLSX · max 20 MB</div>
+                        <div class="file-upload-sub" style="color:var(--accent-indigo2);margin-top:4px">Files are
+                            indexed for AI Q&amp;A</div>
+                    </div>
+                    <div class="file-list" id="file-list">
+                        <div style="text-align:center;color:var(--text-muted);font-size:0.8rem;padding:20px">
+                            No files shared yet
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- People panel -->
+            <div class="sidebar-panel" id="panel-people">
+                <div id="teacher-actions-people" style="display:none; padding: 10px; border-bottom: 1px solid var(--border-color);">
+                    <button class="btn btn-outline" style="width: 100%; font-size: 0.8rem; padding: 6px;" onclick="exportToGoogleSheets()">
+                        📊 Export to Google Sheets
+                    </button>
+                </div>
+                <div class="participants-panel" id="participants-panel">
+                    <div style="text-align:center;color:var(--text-muted);padding:30px;font-size:0.8rem">
+                        Loading participants…
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ── Controls bar ────────────────────────────────── -->
+        <footer class="controls-bar">
+            <button class="ctrl-btn active" id="btn-mic" title="Toggle mic" onclick="toggleMic()">🎤</button>
+            <button class="ctrl-btn active" id="btn-cam" title="Toggle camera" onclick="toggleCam()">📷</button>
+            <button class="ctrl-btn" id="btn-screen" title="Share screen" onclick="toggleScreen()">🖥</button>
+            <div class="ctrl-divider"></div>
+            <div class="subtitle-toggle-wrap">
+                <button class="ctrl-btn" id="btn-subtitle" title="Toggle subtitles"
+                    onclick="toggleSubtitles()">💬</button>
+                <span class="toggle-label" id="subtitle-label">Subtitles off</span>
+            </div>
+            <div class="ctrl-divider"></div>
+            <button class="ctrl-btn" title="Attendance" onclick="switchTab('people')">📋</button>
+            <button class="ctrl-btn danger" onclick="leaveClassroom()" title="Leave room">📞</button>
+        </footer>
+    </div>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- ── Scripts ──────────────────────────────────────────── -->
+    <script src="js/webrtc.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/qa.js"></script>
+    <script src="js/subtitles.js"></script>
+    <script src="js/attendance.js"></script>
+
+    <script>
+        // ════════════════════════════════════════════════════════
+        //   CLASSROOM BOOTSTRAP
+        // ════════════════════════════════════════════════════════
+
+        // ── Auth guard ────────────────────────────────────────
+        const token = sessionStorage.getItem("ai_teacher_token");
+        const username = sessionStorage.getItem("ai_teacher_username") || "Student";
+        const role = sessionStorage.getItem("ai_teacher_role") || "student";
+        const roomId = new URLSearchParams(location.search).get("room") ||
+            sessionStorage.getItem("ai_teacher_room");
+
+        if (!token || !roomId) {
+            window.location.href = "/";
+            throw new Error("Not authenticated");
+        }
+
+        // ── State ─────────────────────────────────────────────
+        let ws = null;
+        let webrtc = null;
+        let subtitleMgr = null;
+        let chatMgr = null;
+        let qaMgr = null;
+        let attendanceMgr = null;
+        let sessionStart = Date.now();
+        let timerInterval = null;
+        let remotePeers = {};   // peer_id → {stream, tileEl}
+        let subtitleOn = false;
+
+        // ── Room info ─────────────────────────────────────────
+        async function loadRoomInfo() {
+            try {
+                const r = await fetch(`/api/classrooms/${roomId}`);
+                if (!r.ok) return;
+                const info = await r.json();
+                document.title = `AI Teacher — ${info.name}`;
+                document.getElementById("room-name").textContent = info.name;
+                document.getElementById("room-subject").textContent = info.subject;
+                loadFiles();
+            } catch { }
+        }
+
+        // ── Timer ─────────────────────────────────────────────
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                const s = Math.floor((Date.now() - sessionStart) / 1000);
+                const m = Math.floor(s / 60).toString().padStart(2, "0");
+                const sec = (s % 60).toString().padStart(2, "0");
+                document.getElementById("session-timer").textContent = `${m}:${sec}`;
+            }, 1000);
+        }
+
+        // ── Share Link ────────────────────────────────────────
+        async function copyShareLink() {
+            try {
+                const r = await fetch(`/api/classrooms/${roomId}/link`);
+                if (!r.ok) throw new Error("Failed to get share link");
+                const data = await r.json();
+                await navigator.clipboard.writeText(data.url);
+                showToast("Share link copied to clipboard!", "success");
+            } catch (e) {
+                showToast("Could not copy link.", "error");
+            }
+        }
+
+        // ── Toast ─────────────────────────────────────────────
+        function showToast(msg, type = "info") {
+            const el = document.createElement("div");
+            el.className = `toast ${type}`;
+            el.innerHTML = `<span>${type === "success" ? "✓" : type === "error" ? "✕" : "ℹ"}</span> ${msg}`;
+            document.getElementById("toast-container").appendChild(el);
+            setTimeout(() => el.remove(), 4000);
+        }
+
+        // ── Video tile helpers ────────────────────────────────
+        function getGrid() { return document.getElementById("video-grid"); }
+
+        function addVideoTile(peerId, stream, label) {
+            if (document.getElementById(`tile-${peerId}`)) return;
+            const tile = document.createElement("div");
+            tile.className = "video-tile";
+            tile.id = `tile-${peerId}`;
+            const vid = document.createElement("video");
+            vid.autoplay = vid.playsInline = true;
+            vid.srcObject = stream;
+            const lbl = document.createElement("div");
+            lbl.className = "video-tile-label";
+            lbl.textContent = label || peerId;
+            tile.append(vid, lbl);
+            getGrid().appendChild(tile);
+            updateGridLayout();
+        }
+
+        function removeVideoTile(peerId) {
+            document.getElementById(`tile-${peerId}`)?.remove();
+            updateGridLayout();
+        }
+
+        function updateGridLayout() {
+            const count = getGrid().querySelectorAll(".video-tile").length;
+            getGrid().setAttribute("data-count", Math.min(count, 4));
+        }
+
+        // ── WebSocket setup ───────────────────────────────────
+        function connectWS() {
+            const proto = location.protocol === "https:" ? "wss" : "ws";
+            ws = new WebSocket(`${proto}://${location.host}/ws/${roomId}?token=${token}`);
+
+            ws.onopen = () => {
+                setStatus("connected", "🟢 Connected");
+                showToast("Connected to classroom", "success");
+            };
+
+            ws.onerror = () => setStatus("error", "🔴 Error");
+            ws.onclose = () => {
+                setStatus("offline", "⚫ Disconnected");
+                showToast("Connection lost. Reconnecting…", "error");
+                setTimeout(connectWS, 3000);
+            };
+
+            ws.onmessage = async (ev) => {
+                let msg;
+                try { msg = JSON.parse(ev.data); } catch { return; }
+                await handleMessage(msg);
+            };
+        }
+
+        async function handleMessage(msg) {
+            const type = msg.type;
+            const payload = msg.payload || {};
+
+            if (type === "system") {
+                // Welcome message — get my peer_id and existing participants
+                document.getElementById('waiting-overlay').style.display = 'none';
+                if (payload.peer_id) {
+                    if (webrtc) webrtc.myPeerId = payload.peer_id;
+                }
+                if (payload.participants?.length) {
+                    attendanceMgr.updateAll(payload.participants);
+                    updateParticipantCount(payload.participants.length);
+                    // Initiate WebRTC with existing peers
+                    for (const p of payload.participants) {
+                        if (p.peer_id !== payload.peer_id) {
+                            await webrtc.createPeer(p.peer_id, true);
+                        }
+                    }
+                }
+                chatMgr.appendMessage({ sender: "", payload: { text: payload.msg }, timestamp: new Date().toISOString() });
+            }
+
+            else if (type === "participant") {
+                if (payload.event === "joined") {
+                    attendanceMgr.addParticipant(payload.peer_id, payload.username, payload.role);
+                    updateParticipantCount(payload.count);
+                    chatMgr.appendMessage({ sender: "", payload: { text: `${payload.username} joined` }, timestamp: new Date().toISOString() });
+                    // New peer → we initiate WebRTC to them
+                    await webrtc.createPeer(payload.peer_id, true);
+                } else if (payload.event === "left") {
+                    attendanceMgr.removeParticipant(payload.peer_id);
+                    updateParticipantCount(payload.count);
+                    webrtc.removePeer(payload.peer_id);
+                    removeVideoTile(payload.peer_id);
+                    chatMgr.appendMessage({ sender: "", payload: { text: `${payload.username} left` }, timestamp: new Date().toISOString() });
+                }
+            }
+
+            else if (type === "chat") {
+                chatMgr.appendMessage(msg);
+            }
+
+            else if (type === "webrtc_offer") {
+                await webrtc.handleOffer(msg.sender, payload.sdp);
+            }
+            else if (type === "webrtc_answer") {
+                await webrtc.handleAnswer(msg.sender, payload.sdp);
+            }
+            else if (type === "webrtc_ice") {
+                await webrtc.handleIce(msg.sender, payload.candidate);
+            }
+
+            else if (type === "qa_stream") {
+                if (payload.status === "thinking") qaMgr.showThinking(payload.question);
+            }
+            else if (type === "qa_answer") {
+                qaMgr.showAnswer(payload);
+                switchTab("qa");
+            }
+
+            else if (type === "subtitle") {
+                document.getElementById("subtitle-text").textContent = payload.text || payload;
+                const el = document.getElementById("subtitle-text");
+                el.classList.add("visible");
+                clearTimeout(el._hideTimer);
+                el._hideTimer = setTimeout(() => el.classList.remove("visible"), 5000);
+            }
+
+            // Waiting Room Messages
+            else if (type === "waiting_for_approval") {
+                document.getElementById('waiting-overlay').style.display = 'flex';
+                document.getElementById('waiting-title').textContent = "Waiting for host teacher to let you in...";
+                document.getElementById('waiting-subtitle').textContent = "Please wait while the host approves your request.";
+            }
+            else if (type === "join_rejected") {
+                document.getElementById('waiting-overlay').style.display = 'flex';
+                document.getElementById('waiting-title').textContent = "Join request declined";
+                document.getElementById('waiting-subtitle').textContent = "The host teacher did not approve your request to join.";
+                ws.close();
+            }
+            else if (type === "teacher_join_request") {
+                const modal = document.getElementById('admit-modal');
+                document.getElementById('admit-text').textContent = `Teacher ${payload.username} wants to join this class.`;
+                modal.style.display = 'flex';
+                
+                const acceptBtn = document.getElementById('admit-accept-btn');
+                const denyBtn = document.getElementById('admit-deny-btn');
+                
+                // Clear old listeners
+                const newAccept = acceptBtn.cloneNode(true);
+                const newDeny = denyBtn.cloneNode(true);
+                acceptBtn.replaceWith(newAccept);
+                denyBtn.replaceWith(newDeny);
+                
+                newAccept.onclick = () => {
+                    modal.style.display = 'none';
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({
+                            type: "approve_teacher", sender: username, sender_role: role,
+                            payload: { peer_id: payload.peer_id }
+                        }));
+                    }
+                };
+                newDeny.onclick = () => {
+                    modal.style.display = 'none';
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({
+                            type: "reject_teacher", sender: username, sender_role: role,
+                            payload: { peer_id: payload.peer_id }
+                        }));
+                    }
+                };
+            }
+        }
+
+        function updateParticipantCount(n) {
+            document.getElementById("part-count").textContent = n;
+        }
+
+        function setStatus(state, text) {
+            document.getElementById("status-text").textContent = text;
+            const dot = document.getElementById("status-dot");
+            dot.style.background = state === "connected" ? "var(--accent-emerald)"
+                : state === "error" ? "var(--accent-rose)" : "var(--text-muted)";
+        }
+
+        // ── Controls ──────────────────────────────────────────
+        function toggleMic() {
+            const muted = webrtc.toggleMic();
+            const btn = document.getElementById("btn-mic");
+            btn.classList.toggle("muted", muted);
+            btn.title = muted ? "Unmute mic" : "Mute mic";
+            btn.textContent = muted ? "🔇" : "🎤";
+        }
+
+        function toggleCam() {
+            const off = webrtc.toggleCam();
+            const btn = document.getElementById("btn-cam");
+            btn.classList.toggle("muted", off);
+            btn.textContent = off ? "🚫" : "📷";
+            document.getElementById("local-avatar").style.display = off ? "flex" : "none";
+            document.getElementById("video-local").style.display = off ? "none" : "block";
+        }
+
+        async function toggleScreen() {
+            const sharing = await webrtc.toggleScreenShare();
+            const btn = document.getElementById("btn-screen");
+            btn.classList.toggle("active", sharing);
+            showToast(sharing ? "Screen sharing started" : "Screen sharing stopped",
+                sharing ? "success" : "info");
+        }
+
+        async function toggleSubtitles() {
+            subtitleOn = !subtitleOn;
+            const btn = document.getElementById("btn-subtitle");
+            btn.classList.toggle("active", subtitleOn);
+            document.getElementById("subtitle-label").textContent = subtitleOn ? "Subtitles on" : "Subtitles off";
+            if (subtitleOn) {
+                subtitleMgr.start(webrtc.localStream);
+                showToast("Subtitles started (Whisper)", "success");
+            } else {
+                subtitleMgr.stop();
+            }
+        }
+
+        // ── Tab switching ─────────────────────────────────────
+        function switchTab(name) {
+            document.querySelectorAll(".sidebar-tab").forEach(t => {
+                t.classList.toggle("active", t.dataset.panel === name);
+            });
+            document.querySelectorAll(".sidebar-panel").forEach(p => {
+                p.classList.toggle("active", p.id === `panel-${name}`);
+            });
+        }
+
+        // ── Chat send ─────────────────────────────────────────
+        function sendChat() {
+            const input = document.getElementById("chat-input");
+            const text = input.value.trim();
+            if (!text || !ws) return;
+            const msg = {
+                type: "chat", sender: username, sender_role: role,
+                payload: { text }, timestamp: new Date().toISOString()
+            };
+            ws.send(JSON.stringify(msg));
+            chatMgr.appendMessage(msg);
+            input.value = "";
+        }
+
+        document.getElementById("btn-send").addEventListener("click", sendChat);
+        document.getElementById("chat-input").addEventListener("keydown", e => {
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); }
+        });
+
+        // ── File upload ───────────────────────────────────────
+        function handleDragOver(e) { e.preventDefault(); document.getElementById("upload-area").classList.add("drag-over"); }
+        function handleDragLeave() { document.getElementById("upload-area").classList.remove("drag-over"); }
+        function handleDrop(e) {
+            e.preventDefault();
+            handleDragLeave();
+            const file = e.dataTransfer?.files?.[0];
+            if (file) doUpload(file);
+        }
+
+        function uploadFile(e) {
+            const file = e.target.files?.[0];
+            if (file) doUpload(file);
+            e.target.value = "";
+        }
+
+        async function doUpload(file) {
+            showToast(`Uploading ${file.name}…`, "info");
+            const fd = new FormData();
+            fd.append("file", file);
+            try {
+                const r = await fetch(`/api/classrooms/${roomId}/upload`, {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${token}` },
+                    body: fd,
+                });
+                if (!r.ok) throw new Error("Upload failed");
+                const { file: info } = await r.json();
+                showToast(`${file.name} uploaded & indexed for AI`, "success");
+                loadFiles();
+                // Notify chat
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: "chat", sender: username, sender_role: role,
+                        payload: { text: `📎 Shared file: ${file.name}`, url: info.url, file_name: file.name },
+                        timestamp: new Date().toISOString(),
+                    }));
+                }
+            } catch (e) {
+                showToast(`Upload failed: ${e.message}`, "error");
+            }
+        }
+
+        async function loadFiles() {
+            try {
+                const r = await fetch(`/api/classrooms/${roomId}/files`);
+                if (!r.ok) return;
+                const { files } = await r.json();
+                const list = document.getElementById("file-list");
+                if (!files.length) {
+                    list.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:0.8rem;padding:20px">No files shared yet</div>`;
+                    return;
+                }
+                list.innerHTML = files.map(f => ChatManager.renderFileItem(f)).join("");
+            } catch { }
+        }
+
+        // ── Leave ─────────────────────────────────────────────
+        function leaveClassroom() {
+            if (!confirm("Leave this classroom?")) return;
+            webrtc?.disconnectAll();
+            ws?.close();
+            clearInterval(timerInterval);
+            sessionStorage.clear();
+            window.location.href = "/";
+        }
+
+        // ── INIT ──────────────────────────────────────────────
+        (async function init() {
+            // Managers
+            chatMgr = new ChatManager("chat-messages", "chat-input", username);
+            attendanceMgr = new AttendanceManager("participants-panel");
+            subtitleMgr = new SubtitleManager(roomId, token, document.getElementById("subtitle-text"));
+            qaMgr = new QAManager({
+                teacherBodyId: "qa-teacher-body",
+                aiBodyId: "qa-ai-body",
+                inputId: "qa-input",
+                sendBtnId: "qa-send",
+                sourcesId: "qa-sources",
+            });
+
+            qaMgr.onQuestion = (q) => {
+                if (ws?.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: "qa_question", sender: username, sender_role: role,
+                        payload: { question: q }, timestamp: new Date().toISOString(),
+                    }));
+                }
+            };
+
+            // Update local label
+            document.getElementById("local-label").textContent = `${username} (You)`;
+
+            // WebRTC
+            webrtc = new WebRTCManager(
+                { send: (d) => ws?.readyState === WebSocket.OPEN && ws.send(d) },
+                [{ urls: "stun:stun.l.google.com:19302" }],
+                (peerId, stream) => addVideoTile(peerId, stream, remotePeers[peerId]?.username || peerId),
+                (peerId) => removeVideoTile(peerId),
+            );
+
+            await webrtc.startLocalMedia(document.getElementById("video-local"));
+
+            // Connect WS (this also triggers WebRTC peer setup)
+            connectWS();
+            loadRoomInfo();
+            startTimer();
+        })();
+    </script>
+</body>
+
+</html>

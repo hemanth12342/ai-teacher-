@@ -1,0 +1,53 @@
+[
+  {
+    "id": "u-admin",
+    "username": "admin",
+    "password": "password",
+    "role": "admin"
+  },
+  {
+    "id": "u-5ddd5f8e",
+    "username": "hemanth",
+    "password": "password",
+    "role": "teacher"
+  },
+  {
+    "id": "u-64421df3",
+    "username": "hemanth456",
+    "password": "SGEhamu122",
+    "role": "student"
+  },
+  {
+    "id": "u-09af7395",
+    "username": "hemanth0456",
+    "password": "SGEhamu122",
+    "role": "teacher"
+  },
+  {
+    "id": "u-cd87926c",
+    "username": "saiii",
+    "password": "12345",
+    "role": "student"
+  },
+  {
+    "id": "u-44f0ad56",
+    "username": "gani",
+    "email": "test@test.com",
+    "password": "gani4203",
+    "role": "teacher"
+  },
+  {
+    "id": "u-c09b07e3",
+    "username": "test_student",
+    "email": "test@test.com",
+    "password": "password",
+    "role": "student"
+  },
+  {
+    "id": "u-b682dbdd",
+    "username": "hemanth4205",
+    "email": "tippanahemanth1234@gmail.com",
+    "password": "SGEhamu122",
+    "role": "teacher"
+  }
+]
