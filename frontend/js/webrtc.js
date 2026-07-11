@@ -457,170 +457,104 @@ class WebRTCManager {
     // =====================================================
 
     async toggleScreenShare() {
-
-        if (this.userRole !== "teacher") {
-            return false;
-        }
-
+        if (this.userRole !== "teacher") return false;
 
         const localVideo =
             document.getElementById("video-local") ||
             document.getElementById("localVideo");
 
-
-        // =================================================
         // STOP SCREEN SHARE
-        // =================================================
-
         if (this.screenStream) {
-
-            const oldScreenStream =
-                this.screenStream;
-
-
+            const stream = this.screenStream;
             this.screenStream = null;
 
-
-            oldScreenStream
-                .getTracks()
-                .forEach(track => track.stop());
-
+            stream.getTracks().forEach(track => track.stop());
 
             await this._restoreCamera(localVideo);
-
-
             return false;
         }
 
-
-        // =================================================
-        // START SCREEN SHARE
-        // =================================================
-
         try {
+            const screenStream =
+                await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        displaySurface: "window"
+                    },
+                    audio: false,
 
-            this.screenStream =
-                await navigator.mediaDevices
-                    .getDisplayMedia({
-                        video: true,
-                        audio: false
-                    });
-
+                    // Chrome hints
+                    selfBrowserSurface: "exclude",
+                    surfaceSwitching: "include",
+                    monitorTypeSurfaces: "include"
+                });
 
             const screenTrack =
-                this.screenStream
-                    .getVideoTracks()[0];
+                screenStream.getVideoTracks()[0];
 
+            if (!screenTrack) return false;
 
-            if (!screenTrack) {
+            this.screenStream = screenStream;
 
-                this.screenStream = null;
-
-                return false;
-            }
-
-
-            // SEND SCREEN TO EVERY STUDENT
-
-            for (
-                const pc of Object.values(this.peers)
-            ) {
-
+            // SEND SCREEN TO ALL STUDENTS
+            for (const pc of Object.values(this.peers)) {
                 const sender =
                     pc._teacherVideoSender ||
                     pc.getSenders().find(
-                        sender =>
-                            sender.track?.kind === "video"
+                        sender => sender.track?.kind === "video"
                     );
-
 
                 if (sender) {
-
-                    await sender.replaceTrack(
-                        screenTrack
-                    );
+                    await sender.replaceTrack(screenTrack);
                 }
             }
 
-
-            // TEACHER PANEL SHOWS ONLY SCREEN
-
+            // TEACHER: SHOW SHARED SCREEN FULL PANEL
             if (localVideo) {
+                localVideo.srcObject = screenStream;
 
-                localVideo.srcObject =
-                    this.screenStream;
+                Object.assign(localVideo.style, {
+                    position: "absolute",
+                    inset: "0",
+                    width: "100%",
+                    height: "100%",
+                    minWidth: "100%",
+                    minHeight: "100%",
+                    maxWidth: "none",
+                    maxHeight: "none",
+                    margin: "0",
+                    padding: "0",
+                    border: "none",
+                    borderRadius: "0",
+                    objectFit: "contain",
+                    objectPosition: "center",
+                    background: "#000"
+                });
 
-
-                localVideo.style.width = "100%";
-                localVideo.style.height = "100%";
-
-                localVideo.style.objectFit =
-                    "contain";
-
-                localVideo.style.objectPosition =
-                    "center";
-
-                localVideo.style.position =
-                    "absolute";
-
-                localVideo.style.inset = "0";
-
-                localVideo.style.maxWidth = "none";
-
-                localVideo.style.border = "none";
-
-                localVideo.style.borderRadius = "0";
+                await localVideo.play().catch(console.warn);
             }
 
-
-            // CAMERA IS STILL RUNNING IN localStream
-
-
+            // SCREEN SHARE STOPPED
             screenTrack.onended = async () => {
-
-                if (!this.screenStream) {
-                    return;
-                }
-
+                if (this.screenStream !== screenStream) return;
 
                 this.screenStream = null;
 
+                await this._restoreCamera(localVideo);
 
-                await this._restoreCamera(
-                    localVideo
-                );
-
-
-                const btn =
-                    document.getElementById(
-                        "btn-screen"
-                    );
-
-
-                if (btn) {
-                    btn.classList.remove("active");
-                }
+                document
+                    .getElementById("btn-screen")
+                    ?.classList.remove("active");
             };
-
-
-            console.log(
-                "[WebRTC] Screen sharing started"
-            );
-
 
             return true;
 
         } catch (error) {
-
             console.warn(
                 "[WebRTC] Screen share cancelled:",
                 error
             );
 
-
             this.screenStream = null;
-
-
             return false;
         }
     }
