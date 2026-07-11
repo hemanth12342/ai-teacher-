@@ -329,7 +329,14 @@
         function getGrid() { return document.getElementById("video-grid"); }
 
         function addVideoTile(peerId, stream, label, roleStr) {
-            if (document.getElementById(`tile-${peerId}`)) return;
+            // If tile already exists, just update its video source (ontrack fires per-track)
+            const existing = document.getElementById(`tile-${peerId}`);
+            if (existing) {
+                const vid = existing.querySelector("video");
+                if (vid && stream) vid.srcObject = stream;
+                return;
+            }
+
             const tile = document.createElement("div");
             tile.className = "video-tile";
             tile.id = `tile-${peerId}`;
@@ -353,11 +360,12 @@
                 tile.style.flexShrink = "0";
                 document.getElementById("student-video-grid").appendChild(tile);
             } else {
-                // Student watching teacher, or teacher's own preview → main video grid
+                // Student watching teacher → main video grid (full screen)
                 document.getElementById("video-grid").appendChild(tile);
                 updateGridLayout();
             }
         }
+
 
 
         function removeVideoTile(peerId) {

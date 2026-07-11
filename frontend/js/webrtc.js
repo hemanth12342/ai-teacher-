@@ -1,10 +1,13 @@
 /**
  * WebRTC peer connection manager.
  *
- * Two modes:
- *  - Teacher:  sends camera + audio → all connected peers receive it.
- *  - Student:  sends nothing → receives teacher's stream only.
- *              Uses recvonly transceivers so SDP negotiation works correctly.
+ * Architecture:
+ *  - Teacher:  ALWAYS the initiator. Adds camera + audio tracks, creates offer.
+ *  - Student:  ALWAYS the answerer. Never adds tracks, never initiates.
+ *              Browser auto-creates recvonly transceivers from the teacher's offer SDP.
+ *              ontrack fires when teacher's video/audio arrives.
+ *
+ * Key rule: DO NOT pre-add transceivers when answering — it breaks SDP negotiation.
  */
 class WebRTCManager {
     constructor(ws, stunServers, onStreamAdded, onStreamRemoved) {
@@ -31,8 +34,9 @@ class WebRTCManager {
             });
             videoEl.srcObject = this.localStream;
             videoEl.muted = true;   // don't echo yourself
+            console.log("[WebRTC] Local media started:", this.localStream.getTracks().length, "tracks");
         } catch (e) {
-            console.warn("Camera/mic access denied:", e.message);
+            console.warn("[WebRTC] Camera/mic access denied:", e.message);
             this.localStream = new MediaStream();
         }
         return this.localStream;
@@ -40,33 +44,31 @@ class WebRTCManager {
 
     // ── Peer management ───────────────────────────────────
 
-    async createPeer(remotePeerId, isInitiator) {
-        // Don't create duplicate connections
-        if (this.peers[remotePeerId]) return this.peers[remotePeerId];
-
+    _buildPeerConnection(remotePeerId) {
         const pc = new RTCPeerConnection({
-            iceServers: this.stunServers || [{ urls: "stun:stun.l.google.com:19302" }],
+            iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                { urls: "stun:stun1.l.google.com:19302" },
+            ],
         });
 
-        if (this.userRole === "teacher") {
-            // Teacher: add real camera + audio tracks so students can receive them
-            if (this.localStream) {
-                this.localStream.getTracks().forEach(track => pc.addTrack(track, this.localStream));
-            }
-        } else {
-            // Student: add recvonly transceivers — no camera sent, but can receive teacher video
-            pc.addTransceiver("video", { direction: "recvonly" });
-            pc.addTransceiver("audio", { direction: "recvonly" });
-        }
-
-        // Receive remote stream
+        // ── ontrack: receive remote stream ──
+        // Called once per track. Use the stream from event.streams[0] if available.
+        const pendingTracks = [];
         pc.ontrack = (event) => {
-            const remoteStream = event.streams[0] || new MediaStream([event.track]);
-            console.log("[WebRTC] ontrack fired for", remotePeerId, event.track.kind);
-            this.onStreamAdded(remotePeerId, remoteStream);
+            console.log("[WebRTC] ontrack:", event.track.kind, "from", remotePeerId);
+            if (event.streams && event.streams[0]) {
+                // Use the fully assembled stream directly
+                this.onStreamAdded(remotePeerId, event.streams[0]);
+            } else {
+                // Fallback: collect tracks and assemble a stream
+                pendingTracks.push(event.track);
+                const stream = new MediaStream(pendingTracks);
+                this.onStreamAdded(remotePeerId, stream);
+            }
         };
 
-        // Send ICE candidates via signaling
+        // ── ICE candidates ──
         pc.onicecandidate = (event) => {
             if (event.candidate) {
                 this.ws.send(JSON.stringify({
@@ -77,19 +79,48 @@ class WebRTCManager {
             }
         };
 
+        pc.oniceconnectionstatechange = () => {
+            console.log("[WebRTC] ICE state →", pc.iceConnectionState, "peer:", remotePeerId);
+        };
+
         pc.onconnectionstatechange = () => {
-            console.log("[WebRTC] connection state →", pc.connectionState, "peer:", remotePeerId);
+            console.log("[WebRTC] Connection →", pc.connectionState, "peer:", remotePeerId);
             if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
                 this.removePeer(remotePeerId);
                 this.onStreamRemoved(remotePeerId);
             }
         };
 
+        return pc;
+    }
+
+    async createPeer(remotePeerId, isInitiator) {
+        // Don't create duplicate connections
+        if (this.peers[remotePeerId]) {
+            console.log("[WebRTC] Peer already exists for", remotePeerId);
+            return this.peers[remotePeerId];
+        }
+
+        console.log("[WebRTC] createPeer", remotePeerId, "initiator:", isInitiator, "role:", this.userRole);
+        const pc = this._buildPeerConnection(remotePeerId);
+
+        // Only the TEACHER adds tracks (it is always the initiator)
+        // Students NEVER add tracks — they only receive.
+        // IMPORTANT: Do NOT add transceivers here for students answering an offer.
+        //            The browser creates them automatically from the remote SDP.
+        if (this.userRole === "teacher" && this.localStream) {
+            this.localStream.getTracks().forEach(track => {
+                console.log("[WebRTC] Adding local track:", track.kind);
+                pc.addTrack(track, this.localStream);
+            });
+        }
+
         this.peers[remotePeerId] = pc;
 
         if (isInitiator) {
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
+            console.log("[WebRTC] Sending offer to", remotePeerId);
             this.ws.send(JSON.stringify({
                 type: "webrtc_offer",
                 target: remotePeerId,
@@ -101,10 +132,14 @@ class WebRTCManager {
     }
 
     async handleOffer(fromPeerId, sdp) {
+        console.log("[WebRTC] Handling offer from", fromPeerId);
+        // Create a peer WITHOUT pre-adding any tracks or transceivers.
+        // setRemoteDescription will set up the right transceivers from the SDP.
         const pc = await this.createPeer(fromPeerId, false);
         await pc.setRemoteDescription(new RTCSessionDescription(sdp));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
+        console.log("[WebRTC] Sending answer to", fromPeerId);
         this.ws.send(JSON.stringify({
             type: "webrtc_answer",
             target: fromPeerId,
@@ -114,14 +149,17 @@ class WebRTCManager {
 
     async handleAnswer(fromPeerId, sdp) {
         const pc = this.peers[fromPeerId];
-        if (pc) await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        if (pc) {
+            console.log("[WebRTC] Handling answer from", fromPeerId);
+            await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        }
     }
 
     async handleIce(fromPeerId, candidate) {
         const pc = this.peers[fromPeerId];
         if (pc) {
             try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); }
-            catch (e) { console.warn("ICE error:", e); }
+            catch (e) { console.warn("[WebRTC] ICE error:", e); }
         }
     }
 
@@ -173,7 +211,7 @@ class WebRTCManager {
             screenTrack.onended = () => this.toggleScreenShare();
             return true;
         } catch (e) {
-            console.warn("Screen share cancelled:", e);
+            console.warn("[WebRTC] Screen share cancelled:", e);
             return false;
         }
     }
