@@ -129,13 +129,11 @@ class WebRTCManager {
         console.log("[WebRTC] createPeer", remotePeerId, "initiator:", isInitiator, "role:", this.userRole);
         const pc = this._buildPeerConnection(remotePeerId);
 
-        // Only the TEACHER adds tracks (it is always the initiator)
-        // Students NEVER add tracks — they only receive.
-        // IMPORTANT: Do NOT add transceivers here for students answering an offer.
-        //            The browser creates them automatically from the remote SDP.
-        if (this.userRole === "teacher" && this.localStream) {
+        // Both teachers and students add tracks so that students can send webcams
+        // The teacher is the initiator (creates offer), students receive offer and answer.
+        if (this.localStream) {
             this.localStream.getTracks().forEach(track => {
-                if (track.kind === "video" && this.screenStream) {
+                if (this.userRole === "teacher" && track.kind === "video" && this.screenStream) {
                     const screenTrack = this.screenStream.getVideoTracks()[0];
                     if (screenTrack) {
                         console.log("[WebRTC] Adding screen track instead of camera");

@@ -735,14 +735,12 @@
                 document.getElementById("tab-cams").style.display = "";
             }
 
-            // ── For STUDENTS: hide their own tile entirely, show only teacher stream ──
+            // ── For STUDENTS: adjust UI but DO initialize camera ──
             if (role === "student") {
-                // Completely hide the local video tile — students have no camera
+                // Hide the local video tile from the main grid for students so they focus on the teacher
                 const localTile = document.getElementById("tile-local");
                 localTile.style.display = "none";
-                // Hide camera, mic, and screen buttons for students
-                document.getElementById("btn-cam").style.display = "none";
-                document.getElementById("btn-mic").style.display = "none";
+                // Hide screen share button for students
                 document.getElementById("btn-screen").style.display = "none";
             }
 
@@ -769,11 +767,9 @@
             // Tell WebRTC manager the user role so it uses the right track strategy
             webrtc.userRole = role;
 
-            if (role === "teacher") {
-                // Teacher: get camera + mic, show local tile
-                await webrtc.startLocalMedia(document.getElementById("video-local"));
-            }
-            // Students: skip getUserMedia entirely — recvonly transceivers handle receiving
+            // EVERYONE gets camera + mic. Teacher shows local tile in main grid.
+            // Student's local tile is hidden, but stream is captured and sent to teacher.
+            await webrtc.startLocalMedia(document.getElementById("video-local"));
 
             // Connect WS (this also triggers WebRTC peer setup)
             connectWS();
