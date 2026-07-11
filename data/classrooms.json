@@ -7,7 +7,7 @@
     "password": "ai2024",
     "description": "Foundations of artificial intelligence, machine learning basics, and neural networks.",
     "color": "#6366f1",
-    "max_participants": 30,
+    "max_participants": 1000,
     "owner": "hemanth"
   },
   {
@@ -18,7 +18,7 @@
     "password": "math2024",
     "description": "Calculus, linear algebra, and discrete mathematics for engineering students.",
     "color": "#22d3ee",
-    "max_participants": 25,
+    "max_participants": 1000,
     "owner": "hemanth"
   },
   {
@@ -29,7 +29,7 @@
     "password": "web2024",
     "description": "Full-stack web development using React, Node.js, and modern frameworks.",
     "color": "#f59e0b",
-    "max_participants": 30,
+    "max_participants": 1000,
     "owner": "hemanth"
   },
   {
@@ -40,7 +40,7 @@
     "password": "data2024",
     "description": "Statistical analysis, data visualization, and predictive modeling with Python.",
     "color": "#10b981",
-    "max_participants": 25,
+    "max_participants": 1000,
     "owner": "hemanth"
   },
   {
@@ -51,7 +51,7 @@
     "password": "cyber2024",
     "description": "Network security, ethical hacking, cryptography, and threat analysis.",
     "color": "#ef4444",
-    "max_participants": 20,
+    "max_participants": 1000,
     "owner": "hemanth"
   },
   {
@@ -62,7 +62,7 @@
     "password": "cloud2024",
     "description": "AWS, Azure, GCP architecture, serverless computing, and DevOps practices.",
     "color": "#8b5cf6",
-    "max_participants": 25,
+    "max_participants": 1000,
     "owner": "hemanth"
   },
   {
@@ -73,7 +73,7 @@
     "password": "mktg2024",
     "description": "SEO, social media strategy, analytics, and growth marketing techniques.",
     "color": "#ec4899",
-    "max_participants": 35,
+    "max_participants": 1000,
     "owner": "hemanth"
   },
   {
@@ -84,7 +84,7 @@
     "password": "biz2024",
     "description": "Organizational behavior, strategic planning, and leadership principles.",
     "color": "#f97316",
-    "max_participants": 40,
+    "max_participants": 1000,
     "owner": "hemanth"
   },
   {
@@ -95,7 +95,7 @@
     "password": "design2024",
     "description": "Visual communication, typography, color theory, and Adobe Creative Suite.",
     "color": "#14b8a6",
-    "max_participants": 20,
+    "max_participants": 1000,
     "owner": "hemanth"
   },
   {
@@ -106,7 +106,7 @@
     "password": "lit2024",
     "description": "Classic and contemporary literature, critical analysis, and creative writing.",
     "color": "#a78bfa",
-    "max_participants": 30,
+    "max_participants": 1000,
     "owner": "hemanth"
   },
   {
@@ -117,7 +117,7 @@
     "password": "12345",
     "description": "",
     "color": "#22d3ee",
-    "max_participants": 30,
+    "max_participants": 1000,
     "owner": "hemanth4205"
   }
 ]

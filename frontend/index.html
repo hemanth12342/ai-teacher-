@@ -262,16 +262,16 @@
 
         function renderStaticPreview() {
             const staticRooms = [
-                { id: "cls-101", name: "Introduction to AI", subject: "Computer Science", description: "Foundations of AI, ML, and neural networks.", color: "#6366f1", participant_count: 0, max_participants: 30, is_active: false },
-                { id: "cls-102", name: "Advanced Mathematics", subject: "Mathematics", description: "Calculus, linear algebra, and discrete math.", color: "#22d3ee", participant_count: 0, max_participants: 25, is_active: false },
-                { id: "cls-103", name: "Web Development", subject: "Programming", description: "Full-stack React, Node.js, and modern frameworks.", color: "#f59e0b", participant_count: 0, max_participants: 30, is_active: false },
-                { id: "cls-104", name: "Data Science", subject: "Data Science", description: "Statistical analysis and predictive modeling.", color: "#10b981", participant_count: 0, max_participants: 25, is_active: false },
-                { id: "cls-105", name: "Cybersecurity", subject: "Security", description: "Network security, ethical hacking, cryptography.", color: "#ef4444", participant_count: 0, max_participants: 20, is_active: false },
-                { id: "cls-106", name: "Cloud Computing", subject: "Infrastructure", description: "AWS, Azure, GCP, and DevOps practices.", color: "#8b5cf6", participant_count: 0, max_participants: 25, is_active: false },
-                { id: "cls-107", name: "Digital Marketing", subject: "Marketing", description: "SEO, social media, analytics, and growth.", color: "#ec4899", participant_count: 0, max_participants: 35, is_active: false },
-                { id: "cls-108", name: "Business Management", subject: "Business", description: "Strategy, leadership, and organizational behavior.", color: "#f97316", participant_count: 0, max_participants: 40, is_active: false },
-                { id: "cls-109", name: "Graphic Design", subject: "Design", description: "Typography, color theory, and Adobe Suite.", color: "#14b8a6", participant_count: 0, max_participants: 20, is_active: false },
-                { id: "cls-110", name: "English Literature", subject: "Humanities", description: "Classic literature and critical analysis.", color: "#a78bfa", participant_count: 0, max_participants: 30, is_active: false },
+                { id: "cls-101", name: "Introduction to AI", subject: "Computer Science", description: "Foundations of AI, ML, and neural networks.", color: "#6366f1", participant_count: 0, max_participants: 1000, is_active: false },
+                { id: "cls-102", name: "Advanced Mathematics", subject: "Mathematics", description: "Calculus, linear algebra, and discrete math.", color: "#22d3ee", participant_count: 0, max_participants: 1000, is_active: false },
+                { id: "cls-103", name: "Web Development", subject: "Programming", description: "Full-stack React, Node.js, and modern frameworks.", color: "#f59e0b", participant_count: 0, max_participants: 1000, is_active: false },
+                { id: "cls-104", name: "Data Science", subject: "Data Science", description: "Statistical analysis and predictive modeling.", color: "#10b981", participant_count: 0, max_participants: 1000, is_active: false },
+                { id: "cls-105", name: "Cybersecurity", subject: "Security", description: "Network security, ethical hacking, cryptography.", color: "#ef4444", participant_count: 0, max_participants: 1000, is_active: false },
+                { id: "cls-106", name: "Cloud Computing", subject: "Infrastructure", description: "AWS, Azure, GCP, and DevOps practices.", color: "#8b5cf6", participant_count: 0, max_participants: 1000, is_active: false },
+                { id: "cls-107", name: "Digital Marketing", subject: "Marketing", description: "SEO, social media, analytics, and growth.", color: "#ec4899", participant_count: 0, max_participants: 1000, is_active: false },
+                { id: "cls-108", name: "Business Management", subject: "Business", description: "Strategy, leadership, and organizational behavior.", color: "#f97316", participant_count: 0, max_participants: 1000, is_active: false },
+                { id: "cls-109", name: "Graphic Design", subject: "Design", description: "Typography, color theory, and Adobe Suite.", color: "#14b8a6", participant_count: 0, max_participants: 1000, is_active: false },
+                { id: "cls-110", name: "English Literature", subject: "Humanities", description: "Classic literature and critical analysis.", color: "#a78bfa", participant_count: 0, max_participants: 1000, is_active: false },
             ];
             renderGrid(staticRooms);
         }
@@ -567,7 +567,7 @@
 
             try {
                 const payload = {
-                    name, subject, password, username, description, max_participants: 30
+                    name, subject, password, username, description, max_participants: 1000
                 };
                 const token = localStorage.getItem("global_token");
                 const r = await fetch(`${window.API_BASE_URL}/api/classrooms/create`, {
