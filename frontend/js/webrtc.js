@@ -130,19 +130,26 @@ class WebRTCManager {
         const pc = this._buildPeerConnection(remotePeerId);
 
         // Only the TEACHER adds tracks (it is always the initiator)
-        if (this.userRole === "teacher" && this.localStream) {
-            this.localStream.getTracks().forEach(track => {
-                if (track.kind === "video" && this.screenStream) {
-                    const screenTrack = this.screenStream.getVideoTracks()[0];
-                    if (screenTrack) {
-                        console.log("[WebRTC] Adding screen track instead of camera");
-                        pc.addTrack(screenTrack, this.localStream);
-                        return;
+        if (this.userRole === "teacher") {
+            if (this.localStream) {
+                this.localStream.getTracks().forEach(track => {
+                    if (track.kind === "video" && this.screenStream) {
+                        const screenTrack = this.screenStream.getVideoTracks()[0];
+                        if (screenTrack) {
+                            console.log("[WebRTC] Adding screen track instead of camera");
+                            pc.addTrack(screenTrack, this.localStream);
+                            return;
+                        }
                     }
-                }
-                console.log("[WebRTC] Adding local track:", track.kind);
-                pc.addTrack(track, this.localStream);
-            });
+                    console.log("[WebRTC] Adding local track:", track.kind);
+                    pc.addTrack(track, this.localStream);
+                });
+            }
+        } else {
+            // Student: add recvonly transceivers explicitly. Some browsers require this
+            // to properly generate the answer and trigger ontrack events.
+            pc.addTransceiver("video", { direction: "recvonly" });
+            pc.addTransceiver("audio", { direction: "recvonly" });
         }
 
         this.peers[remotePeerId] = pc;
