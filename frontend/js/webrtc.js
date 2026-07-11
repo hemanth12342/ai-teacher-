@@ -451,9 +451,9 @@ class WebRTCManager {
 
 
     // =====================================================
-    // ZOOM STYLE SCREEN SHARE
-    // SCREEN FULL PANEL
-    // CAMERA CONTINUES IN BACKGROUND
+    // ZOOM-STYLE SCREEN SHARE
+    // SCREEN REPLACES CAMERA
+    // CAMERA KEEPS RUNNING IN BACKGROUND
     // =====================================================
 
     async toggleScreenShare() {
@@ -465,12 +465,17 @@ class WebRTCManager {
 
         // STOP SCREEN SHARE
         if (this.screenStream) {
-            const stream = this.screenStream;
+            const oldStream = this.screenStream;
+
             this.screenStream = null;
 
-            stream.getTracks().forEach(track => track.stop());
+            oldStream.getTracks().forEach(track => {
+                track.onended = null;
+                track.stop();
+            });
 
             await this._restoreCamera(localVideo);
+
             return false;
         }
 
@@ -478,11 +483,9 @@ class WebRTCManager {
             const screenStream =
                 await navigator.mediaDevices.getDisplayMedia({
                     video: {
-                        displaySurface: "window"
+                        frameRate: { ideal: 30, max: 60 }
                     },
                     audio: false,
-
-                    // Chrome hints
                     selfBrowserSurface: "exclude",
                     surfaceSwitching: "include",
                     monitorTypeSurfaces: "include"
@@ -495,7 +498,7 @@ class WebRTCManager {
 
             this.screenStream = screenStream;
 
-            // SEND SCREEN TO ALL STUDENTS
+            // SEND SCREEN TO EVERY STUDENT
             for (const pc of Object.values(this.peers)) {
                 const sender =
                     pc._teacherVideoSender ||
@@ -508,7 +511,7 @@ class WebRTCManager {
                 }
             }
 
-            // TEACHER: SHOW SHARED SCREEN FULL PANEL
+            // TEACHER SEES SHARED SCREEN FULL PANEL
             if (localVideo) {
                 localVideo.srcObject = screenStream;
 
@@ -527,13 +530,14 @@ class WebRTCManager {
                     borderRadius: "0",
                     objectFit: "contain",
                     objectPosition: "center",
-                    background: "#000"
+                    background: "#000",
+                    zIndex: "1"
                 });
 
                 await localVideo.play().catch(console.warn);
             }
 
-            // SCREEN SHARE STOPPED
+            // NATIVE CHROME "STOP SHARING"
             screenTrack.onended = async () => {
                 if (this.screenStream !== screenStream) return;
 
@@ -546,6 +550,8 @@ class WebRTCManager {
                     ?.classList.remove("active");
             };
 
+            console.log("[WebRTC] Zoom-style screen share started");
+
             return true;
 
         } catch (error) {
@@ -555,77 +561,65 @@ class WebRTCManager {
             );
 
             this.screenStream = null;
+
             return false;
         }
     }
 
 
     // =====================================================
-    // RESTORE CAMERA
+    // RESTORE TEACHER CAMERA
     // =====================================================
 
     async _restoreCamera(localVideo) {
-
         const cameraTrack =
-            this.localStream
-                ?.getVideoTracks()[0];
-
+            this.localStream?.getVideoTracks()[0];
 
         if (!cameraTrack) return;
 
+        // CAMERA WAS NEVER STOPPED
+        cameraTrack.enabled = !this.camOff;
 
-        for (
-            const pc of Object.values(this.peers)
-        ) {
-
+        // SEND CAMERA BACK TO EVERY STUDENT
+        for (const pc of Object.values(this.peers)) {
             const sender =
                 pc._teacherVideoSender ||
                 pc.getSenders().find(
-                    sender =>
-                        sender.track?.kind === "video"
+                    sender => sender.track?.kind === "video"
                 );
-
 
             if (sender) {
-
-                await sender.replaceTrack(
-                    cameraTrack
-                );
+                await sender.replaceTrack(cameraTrack);
             }
         }
 
-
+        // RESTORE CAMERA FULL PANEL
         if (localVideo) {
+            localVideo.srcObject = this.localStream;
 
-            localVideo.srcObject =
-                this.localStream;
+            Object.assign(localVideo.style, {
+                position: "absolute",
+                inset: "0",
+                width: "100%",
+                height: "100%",
+                minWidth: "100%",
+                minHeight: "100%",
+                maxWidth: "none",
+                maxHeight: "none",
+                margin: "0",
+                padding: "0",
+                border: "none",
+                borderRadius: "0",
+                objectFit: "cover",
+                objectPosition: "center",
+                background: "#000",
+                zIndex: "1"
+            });
 
-
-            localVideo.style.width = "100%";
-            localVideo.style.height = "100%";
-
-            localVideo.style.objectFit =
-                "cover";
-
-            localVideo.style.objectPosition =
-                "center";
-
-            localVideo.style.position =
-                "absolute";
-
-            localVideo.style.inset = "0";
-
-            localVideo.style.maxWidth = "none";
-
-            localVideo.style.border = "none";
-
-            localVideo.style.borderRadius = "0";
+            await localVideo.play().catch(console.warn);
         }
 
-
-        console.log(
-            "[WebRTC] Camera restored"
-        );
+        console.log("[WebRTC] Teacher camera restored");
     }
 
 
