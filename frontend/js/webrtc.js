@@ -186,47 +186,51 @@ class WebRTCManager {
 
             const teacherStream = new MediaStream();
 
+            // ======================================================
+            // STUDENT: TEACHER VIDEO FULL MAIN PANEL
+            // ======================================================
+
             pc.ontrack = (event) => {
+                console.log("[WebRTC] Teacher track:", event.track.kind);
 
-                if (
-                    !teacherStream
-                        .getTracks()
-                        .some(track => track.id === event.track.id)
-                ) {
-                    teacherStream.addTrack(event.track);
-                }
+                let teacherVideo = document.getElementById("teacherVideo");
 
-                let video = document.getElementById("teacherVideo");
+                if (!teacherVideo) {
+                    teacherVideo = document.createElement("video");
 
-                if (!video) {
-
-                    video = document.createElement("video");
-
-                    video.id = "teacherVideo";
-                    video.autoplay = true;
-                    video.playsInline = true;
+                    teacherVideo.id = "teacherVideo";
+                    teacherVideo.autoplay = true;
+                    teacherVideo.playsInline = true;
 
                     const panel =
-                        document.getElementById("video-grid") ||
+                        document.getElementById("videoGrid") ||
                         document.querySelector(".video-grid") ||
                         document.querySelector(".video-panel") ||
-                        document.getElementById("videoGrid");
+                        document.querySelector("main");
 
-                    if (panel) {
-                        panel.innerHTML = "";
-                        panel.appendChild(video);
+                    if (!panel) {
+                        console.error("[WebRTC] Video panel not found");
+                        return;
                     }
+
+                    panel.innerHTML = "";
+                    panel.appendChild(teacherVideo);
                 }
 
-                video.srcObject = teacherStream;
+                if (!teacherVideo.srcObject) {
+                    teacherVideo.srcObject = new MediaStream();
+                }
 
-                video.style.width = "100%";
-                video.style.height = "100%";
-                video.style.objectFit = "cover";
-                video.style.objectPosition = "center";
-                video.style.background = "#000";
+                const remoteStream = teacherVideo.srcObject;
 
-                video.play().catch(console.warn);
+                if (
+                    !remoteStream.getTracks()
+                        .some(track => track.id === event.track.id)
+                ) {
+                    remoteStream.addTrack(event.track);
+                }
+
+                teacherVideo.play().catch(console.warn);
             };
         }
 
@@ -371,39 +375,82 @@ class WebRTCManager {
 
 
         // ======================================================
-        // FULL VIDEO PANEL CSS
+        // FORCE TEACHER VIDEO TO FULL MAIN VIDEO AREA
         // ======================================================
 
-        if (!document.getElementById("webrtc-video-style")) {
+        if (!document.getElementById("teacher-fullscreen-style")) {
 
             const style = document.createElement("style");
 
-            style.id = "webrtc-video-style";
+            style.id = "teacher-fullscreen-style";
 
             style.textContent = `
+
                 #videoGrid,
                 #video-grid,
                 .video-grid,
                 .video-panel {
+                    position: relative !important;
                     width: 100% !important;
                     height: 100% !important;
-                    min-height: 0 !important;
+                    min-width: 100% !important;
+                    min-height: 100% !important;
+
+                    display: block !important;
+
+                    padding: 0 !important;
+                    margin: 0 !important;
+
                     overflow: hidden !important;
+
+                    background: #000 !important;
+
+                    grid-template-columns: none !important;
+                }
+
+                #localVideo,
+                #video-local {
+                    position: absolute !important;
+                    width: 25% !important;
+                    height: auto !important;
+                    max-width: 250px !important;
+                    bottom: 20px !important;
+                    right: 20px !important;
+                    z-index: 99 !important;
+                    border: 2px solid white !important;
+                    border-radius: 10px !important;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+                }
+
+                #teacherVideo {
+                    position: absolute !important;
+
+                    top: 0 !important;
+                    left: 0 !important;
+
+                    width: 100% !important;
+                    height: 100% !important;
+
+                    min-width: 100% !important;
+                    min-height: 100% !important;
+
+                    max-width: none !important;
+                    max-height: none !important;
+
+                    margin: 0 !important;
+                    padding: 0 !important;
+
+                    border: none !important;
+                    border-radius: 0 !important;
+
+                    display: block !important;
+
+                    object-fit: cover !important;
+                    object-position: center !important;
+
                     background: #000 !important;
                 }
 
-                #teacherVideo,
-                #localVideo,
-                #video-local {
-                    width: 100% !important;
-                    height: 100% !important;
-                    max-width: none !important;
-                    max-height: none !important;
-                    display: block !important;
-                    object-fit: cover;
-                    object-position: center;
-                    background: #000;
-                }
             `;
 
             document.head.appendChild(style);
