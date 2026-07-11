@@ -9,7 +9,7 @@ CREATE TABLE classrooms (
     password VARCHAR(255),
     description TEXT,
     color VARCHAR(50),
-    max_participants INT,
+    max_participants INT DEFAULT 1000,
     owner VARCHAR(255),
     INDEX idx_classrooms_name (name),
     INDEX idx_classrooms_slug (slug)
