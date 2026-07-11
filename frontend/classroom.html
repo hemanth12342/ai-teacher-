@@ -740,9 +740,10 @@
                 // Completely hide the local video tile — students have no camera
                 const localTile = document.getElementById("tile-local");
                 localTile.style.display = "none";
-                // Hide camera and mic buttons for students
+                // Hide camera, mic, and screen buttons for students
                 document.getElementById("btn-cam").style.display = "none";
                 document.getElementById("btn-mic").style.display = "none";
+                document.getElementById("btn-screen").style.display = "none";
             }
 
             // WebRTC
@@ -750,11 +751,20 @@
                 { send: (d) => ws?.readyState === WebSocket.OPEN && ws.send(d) },
                 [{ urls: "stun:stun.l.google.com:19302" }],
                 (peerId, stream) => {
-                    const part = attendanceMgr.participants.find(p => p.id === peerId);
-                    addVideoTile(peerId, stream, part?.name || peerId, part?.role || "student");
+                    // attendanceMgr.participants is {peerId: {username, role}} — use Object.values
+                    const allParts = Object.entries(attendanceMgr.participants);
+                    const found = allParts.find(([id]) => id === peerId);
+                    const partData = found ? found[1] : null;
+                    const label = partData?.username || peerId;
+                    const peerRole = partData?.role || (role === "student" ? "teacher" : "student");
+                    addVideoTile(peerId, stream, label, peerRole);
+                    // Force play — browsers block autoplay without user gesture
+                    const vid = document.querySelector(`#tile-${peerId} video`);
+                    if (vid) vid.play().catch(() => {});
                 },
                 (peerId) => removeVideoTile(peerId),
             );
+
 
             // Tell WebRTC manager the user role so it uses the right track strategy
             webrtc.userRole = role;

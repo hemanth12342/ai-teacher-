@@ -135,6 +135,14 @@ class WebRTCManager {
         //            The browser creates them automatically from the remote SDP.
         if (this.userRole === "teacher" && this.localStream) {
             this.localStream.getTracks().forEach(track => {
+                if (track.kind === "video" && this.screenStream) {
+                    const screenTrack = this.screenStream.getVideoTracks()[0];
+                    if (screenTrack) {
+                        console.log("[WebRTC] Adding screen track instead of camera");
+                        pc.addTrack(screenTrack, this.localStream);
+                        return;
+                    }
+                }
                 console.log("[WebRTC] Adding local track:", track.kind);
                 pc.addTrack(track, this.localStream);
             });
@@ -233,6 +241,7 @@ class WebRTCManager {
     }
 
     async toggleScreenShare() {
+        const localVideo = document.getElementById("video-local");
         if (this.screenStream) {
             this.screenStream.getTracks().forEach(t => t.stop());
             this.screenStream = null;
@@ -243,6 +252,9 @@ class WebRTCManager {
                     if (sender) sender.replaceTrack(camTrack);
                 });
             }
+            if (localVideo && this.localStream) {
+                localVideo.srcObject = this.localStream;
+            }
             return false;
         }
         try {
@@ -252,7 +264,14 @@ class WebRTCManager {
                 const sender = pc.getSenders().find(s => s.track?.kind === "video");
                 if (sender) sender.replaceTrack(screenTrack);
             });
-            screenTrack.onended = () => this.toggleScreenShare();
+            if (localVideo) {
+                localVideo.srcObject = this.screenStream;
+            }
+            screenTrack.onended = () => {
+                this.toggleScreenShare();
+                const btn = document.getElementById("btn-screen");
+                if (btn) btn.classList.remove("active");
+            };
             return true;
         } catch (e) {
             console.warn("[WebRTC] Screen share cancelled:", e);
