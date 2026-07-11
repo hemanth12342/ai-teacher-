@@ -129,30 +129,141 @@ class WebRTCManager {
         console.log("[WebRTC] createPeer", remotePeerId, "initiator:", isInitiator, "role:", this.userRole);
         const pc = this._buildPeerConnection(remotePeerId);
 
-        // Only the TEACHER adds tracks (it is always the initiator)
+        // ==========================================
+        // TEACHER -> SEND CAMERA / SCREEN + AUDIO
+        // STUDENT -> RECEIVE TEACHER VIDEO + AUDIO
+        // ==========================================
+
         if (this.userRole === "teacher") {
-            if (this.localStream) {
-                this.localStream.getTracks().forEach(track => {
-                    if (track.kind === "video" && this.screenStream) {
-                        const screenTrack = this.screenStream.getVideoTracks()[0];
-                        if (screenTrack) {
-                            console.log("[WebRTC] Adding screen track instead of camera");
-                            pc.addTrack(screenTrack, this.localStream);
-                            return;
-                        }
-                    }
-                    console.log("[WebRTC] Adding local track:", track.kind);
-                    pc.addTrack(track, this.localStream);
-                });
+
+            if (!this.localStream) {
+                console.error("[WebRTC] Teacher localStream is missing");
+                return pc;
             }
+
+            // ADD TEACHER AUDIO
+            const audioTrack = this.localStream.getAudioTracks()[0];
+
+            if (audioTrack) {
+                console.log("[WebRTC] Sending teacher audio:", audioTrack.id);
+                pc.addTrack(audioTrack, this.localStream);
+            }
+
+            // SELECT SCREEN OR CAMERA VIDEO
+            let videoTrack = null;
+            let videoStream = this.localStream;
+
+            if (
+                this.screenStream &&
+                this.screenStream.active &&
+                this.screenStream.getVideoTracks().length > 0
+            ) {
+                videoTrack = this.screenStream.getVideoTracks()[0];
+                videoStream = this.screenStream;
+
+                console.log(
+                    "[WebRTC] Sending teacher SCREEN:",
+                    videoTrack.id
+                );
+
+            } else {
+
+                videoTrack = this.localStream.getVideoTracks()[0];
+
+                if (videoTrack) {
+                    console.log(
+                        "[WebRTC] Sending teacher CAMERA/FACE:",
+                        videoTrack.id
+                    );
+                }
+            }
+
+            // ADD VIDEO TRACK
+            if (videoTrack) {
+                pc.addTrack(videoTrack, videoStream);
+            }
+
         } else {
-            // Student: add recvonly transceivers explicitly. Some browsers require this
-            // to properly generate the answer and trigger ontrack events.
-            pc.addTransceiver("video", { direction: "recvonly" });
-            pc.addTransceiver("audio", { direction: "recvonly" });
+
+            // ==========================================
+            // STUDENT -> RECEIVE TEACHER STREAM ONLY
+            // ==========================================
+
+            console.log("[WebRTC] Student waiting for teacher stream");
+
+            pc.addTransceiver("video", {
+                direction: "recvonly"
+            });
+
+            pc.addTransceiver("audio", {
+                direction: "recvonly"
+            });
+
+            // RECEIVE TEACHER CAMERA / SCREEN / AUDIO
+            pc.ontrack = (event) => {
+
+                console.log(
+                    "[WebRTC] Teacher track received:",
+                    event.track.kind
+                );
+
+                let teacherVideo =
+                    document.getElementById("teacherVideo");
+
+                if (!teacherVideo) {
+
+                    teacherVideo = document.createElement("video");
+
+                    teacherVideo.id = "teacherVideo";
+                    teacherVideo.autoplay = true;
+                    teacherVideo.playsInline = true;
+
+                    // Match classroom.html's video grid id
+                    const videoGrid =
+                        document.getElementById("video-grid");
+
+                    if (videoGrid) {
+                        videoGrid.appendChild(teacherVideo);
+                    }
+                }
+
+                // BUILD ONE REMOTE STREAM FOR BOTH VIDEO + AUDIO
+                if (!teacherVideo.srcObject) {
+                    teacherVideo.srcObject = new MediaStream();
+                }
+
+                const remoteStream = teacherVideo.srcObject;
+
+                const alreadyExists = remoteStream
+                    .getTracks()
+                    .some(track => track.id === event.track.id);
+
+                if (!alreadyExists) {
+                    remoteStream.addTrack(event.track);
+                }
+
+                teacherVideo.play().catch(error => {
+                    console.warn(
+                        "[WebRTC] Teacher video autoplay blocked:",
+                        error
+                    );
+                });
+            };
         }
 
+        // ==========================================
+        // STORE PEER CONNECTION
+        // ONE CONNECTION PER REMOTE PEER
+        // ==========================================
+
         this.peers[remotePeerId] = pc;
+
+        console.log(
+            "[WebRTC] Peer ready:",
+            remotePeerId,
+            "| Role:",
+            this.userRole
+        );
 
         if (isInitiator) {
             const offer = await pc.createOffer();
