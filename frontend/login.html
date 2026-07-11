@@ -146,6 +146,19 @@
 
     </div>
 
+    <!-- User Not Found Popup -->
+    <div id="notfound-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:linear-gradient(145deg,#1e1b4b,#1e293b); border:2px solid #a855f7; border-radius:20px; padding:36px 32px; max-width:380px; width:90%; text-align:center; box-shadow:0 0 40px rgba(168,85,247,0.4);">
+            <div style="font-size:2.5rem; margin-bottom:12px;">🚫</div>
+            <div style="font-size:1.3rem; font-weight:800; color:#f1f5f9; margin-bottom:8px;">User Not Found</div>
+            <div style="color:rgba(200,200,230,0.8); font-size:0.95rem; margin-bottom:28px; line-height:1.6;">No account found with that username.<br>Would you like to create a new account?</div>
+            <div style="display:flex; gap:12px; justify-content:center;">
+                <button onclick="document.getElementById('notfound-overlay').style.display='none'" style="padding:10px 20px; border-radius:10px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); color:#f1f5f9; cursor:pointer; font-size:0.95rem;">Cancel</button>
+                <button onclick="goToRegister()" style="padding:10px 22px; border-radius:10px; background:linear-gradient(135deg,#a855f7,#6366f1); border:none; color:white; font-weight:700; cursor:pointer; font-size:0.95rem; box-shadow:0 4px 20px rgba(168,85,247,0.4);">📝 Go to Register</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         function switchTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -212,7 +225,15 @@
                 
                 if (!res.ok) {
                     const data = await res.json();
-                    throw new Error(data.detail || "Login failed");
+                    const msg = data.detail || "Login failed";
+                    // Show special popup if user doesn't exist in the database
+                    if (msg === "User not found" || res.status === 404) {
+                        document.getElementById('notfound-overlay').style.display = 'flex';
+                        btn.textContent = "Login";
+                        btn.disabled = false;
+                        return;
+                    }
+                    throw new Error(msg);
                 }
                 const data = await res.json();
                 localStorage.setItem("global_token", data.token);
@@ -225,6 +246,14 @@
                 btn.textContent = "Login";
                 btn.disabled = false;
             }
+        }
+
+        function goToRegister() {
+            document.getElementById('notfound-overlay').style.display = 'none';
+            switchTab('register');
+            // Pre-fill the username they tried
+            const u = document.getElementById('login-username').value.trim();
+            if (u) document.getElementById('reg-username').value = u;
         }
 
         async function doRegister() {

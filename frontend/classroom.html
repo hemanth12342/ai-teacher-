@@ -278,11 +278,43 @@
                 if (!r.ok) throw new Error("Failed to get share link");
                 const data = await r.json();
                 await navigator.clipboard.writeText(data.url);
-                showToast("Share link copied to clipboard!", "success");
+                showLinkCopiedPopup(data.url);
             } catch (e) {
                 showToast("Could not copy link.", "error");
             }
         }
+
+        function showLinkCopiedPopup(url) {
+            // Remove any existing popup
+            document.getElementById("link-copied-popup")?.remove();
+            const popup = document.createElement("div");
+            popup.id = "link-copied-popup";
+            popup.style.cssText = `
+                position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                z-index: 99999; background: linear-gradient(145deg, #1e1b4b, #1e293b);
+                border: 2px solid #a855f7; border-radius: 20px; padding: 32px 36px;
+                text-align: center; min-width: 320px;
+                box-shadow: 0 0 60px rgba(168,85,247,0.5), 0 20px 60px rgba(0,0,0,0.6);
+                animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            `;
+            popup.innerHTML = `
+                <style>@keyframes popIn { from { opacity:0; transform:translate(-50%,-50%) scale(0.7); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }</style>
+                <div style="font-size:2.5rem; margin-bottom:10px;">🔗</div>
+                <div style="font-size:1.3rem; font-weight:800; color:#f1f5f9; margin-bottom:6px;">Link Copied!</div>
+                <div style="color:rgba(200,200,230,0.75); font-size:0.85rem; margin-bottom:16px; word-break:break-all; max-width:280px; margin-inline:auto;">${url}</div>
+                <div style="font-size:0.8rem; color:#a855f7;">Share this link with your students to join the class</div>
+            `;
+            document.body.appendChild(popup);
+            // Backdrop
+            const bg = document.createElement("div");
+            bg.id = "link-copied-bg";
+            bg.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);z-index:99998;";
+            bg.onclick = () => { popup.remove(); bg.remove(); };
+            document.body.insertBefore(bg, popup);
+            // Auto-dismiss after 3s
+            setTimeout(() => { popup.remove(); bg.remove(); }, 3000);
+        }
+
 
         // ── Toast ─────────────────────────────────────────────
         function showToast(msg, type = "info") {
