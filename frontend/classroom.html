@@ -118,14 +118,6 @@
                 <button class="sidebar-tab" data-panel="qa" onclick="switchTab('qa')">🤖 Q&amp;A</button>
                 <button class="sidebar-tab" data-panel="files" onclick="switchTab('files')">📁 Files</button>
                 <button class="sidebar-tab" data-panel="people" onclick="switchTab('people')">👥 People</button>
-                <button class="sidebar-tab" id="tab-cams" data-panel="cams" onclick="switchTab('cams')" style="display:none;">📷 Webcams</button>
-            </div>
-
-            
-            <!-- Webcams panel -->
-            <div class="sidebar-panel" id="panel-cams">
-                <div class="student-video-grid" id="student-video-grid" style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:16px; min-height:0;">
-                </div>
             </div>
 
             <!-- Chat panel -->
@@ -333,7 +325,9 @@
             const existing = document.getElementById(`tile-${peerId}`);
             if (existing) {
                 const vid = existing.querySelector("video");
-                if (vid && stream) vid.srcObject = stream;
+                if (vid && stream && vid.srcObject !== stream) {
+                    vid.srcObject = stream;
+                }
                 return;
             }
 
@@ -348,22 +342,9 @@
             lbl.textContent = label || peerId;
             tile.append(vid, lbl);
 
-            // Routing logic:
-            // - If I am a STUDENT: ALL remote streams (teacher's) go to the main video grid
-            // - If I am a TEACHER: student streams go to Webcams panel, teacher stream goes to main grid
-            const amTeacher = role === "teacher";
-            const isStudentStream = roleStr === "student";
-
-            if (amTeacher && isStudentStream) {
-                // Teacher monitoring student webcams → Webcams panel
-                tile.style.minHeight = "200px";
-                tile.style.flexShrink = "0";
-                document.getElementById("student-video-grid").appendChild(tile);
-            } else {
-                // Student watching teacher → main video grid (full screen)
-                document.getElementById("video-grid").appendChild(tile);
-                updateGridLayout();
-            }
+            // Everyone watches the teacher in the main video grid
+            document.getElementById("video-grid").appendChild(tile);
+            updateGridLayout();
         }
 
 
@@ -731,16 +712,16 @@
             if (role === "teacher") {
                 document.getElementById("btn-change-pwd").style.display = "inline-flex";
                 document.getElementById("local-label").textContent = `${username} (You)`;
-                // Teachers can see the Webcams tab to monitor all students
-                document.getElementById("tab-cams").style.display = "";
             }
 
-            // ── For STUDENTS: adjust UI but DO initialize camera ──
+            // ── For STUDENTS: hide their own tile entirely, show only teacher stream ──
             if (role === "student") {
-                // Hide the local video tile from the main grid for students so they focus on the teacher
+                // Completely hide the local video tile — students have no camera
                 const localTile = document.getElementById("tile-local");
                 localTile.style.display = "none";
-                // Hide screen share button for students
+                // Hide camera, mic, and screen buttons for students
+                document.getElementById("btn-cam").style.display = "none";
+                document.getElementById("btn-mic").style.display = "none";
                 document.getElementById("btn-screen").style.display = "none";
             }
 
@@ -767,9 +748,11 @@
             // Tell WebRTC manager the user role so it uses the right track strategy
             webrtc.userRole = role;
 
-            // EVERYONE gets camera + mic. Teacher shows local tile in main grid.
-            // Student's local tile is hidden, but stream is captured and sent to teacher.
-            await webrtc.startLocalMedia(document.getElementById("video-local"));
+            if (role === "teacher") {
+                // Teacher: get camera + mic, show local tile
+                await webrtc.startLocalMedia(document.getElementById("video-local"));
+            }
+            // Students: skip getUserMedia entirely — recvonly transceivers handle receiving
 
             // Connect WS (this also triggers WebRTC peer setup)
             connectWS();
