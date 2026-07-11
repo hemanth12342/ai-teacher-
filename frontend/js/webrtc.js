@@ -130,50 +130,51 @@ class WebRTCManager {
         const pc = this._buildPeerConnection(remotePeerId);
 
         // ======================================================
-        // WEBRTC VIDEO + SCREEN SHARE + FULL PANEL FIX
+        // ZOOM-STYLE WEBRTC
+        // CAMERA FULL PANEL -> SCREEN FULL PANEL -> CAMERA RETURN
         // ======================================================
 
         if (this.userRole === "teacher") {
 
             if (!this.localStream) {
-                console.error("[WebRTC] Teacher stream missing");
+                console.error("[WebRTC] Teacher local stream missing");
                 return pc;
             }
 
-            // SEND AUDIO
+            // --------------------------------------------------
+            // AUDIO
+            // --------------------------------------------------
+
             const audioTrack = this.localStream.getAudioTracks()[0];
 
             if (audioTrack) {
                 pc.addTrack(audioTrack, this.localStream);
             }
 
-            // SEND SCREEN OR CAMERA
-            const screenTrack = this.screenStream?.getVideoTracks()?.[0];
+            // --------------------------------------------------
+            // CAMERA
+            // Camera keeps running in background
+            // --------------------------------------------------
+
             const cameraTrack = this.localStream.getVideoTracks()[0];
 
-            const videoTrack =
-                screenTrack && screenTrack.readyState === "live"
-                    ? screenTrack
-                    : cameraTrack;
+            if (cameraTrack) {
 
-            if (videoTrack) {
-                const videoStream = new MediaStream([videoTrack]);
-
-                pc.addTrack(videoTrack, videoStream);
-
-                console.log(
-                    "[WebRTC] Sending:",
-                    videoTrack === screenTrack ? "SCREEN" : "CAMERA"
+                const videoSender = pc.addTrack(
+                    cameraTrack,
+                    this.localStream
                 );
+
+                pc._teacherVideoSender = videoSender;
+
+                console.log("[WebRTC] Teacher camera added");
             }
 
         } else {
 
-            // ==========================================
-            // STUDENT RECEIVES TEACHER
-            // ==========================================
-
-            console.log("[WebRTC] Student waiting for teacher stream");
+            // --------------------------------------------------
+            // STUDENT RECEIVE TEACHER
+            // --------------------------------------------------
 
             pc.addTransceiver("video", {
                 direction: "recvonly"
@@ -183,16 +184,16 @@ class WebRTCManager {
                 direction: "recvonly"
             });
 
-            const remoteStream = new MediaStream();
+            const teacherStream = new MediaStream();
 
             pc.ontrack = (event) => {
 
                 if (
-                    !remoteStream
+                    !teacherStream
                         .getTracks()
                         .some(track => track.id === event.track.id)
                 ) {
-                    remoteStream.addTrack(event.track);
+                    teacherStream.addTrack(event.track);
                 }
 
                 let video = document.getElementById("teacherVideo");
@@ -206,10 +207,10 @@ class WebRTCManager {
                     video.playsInline = true;
 
                     const panel =
-                        document.getElementById("videoGrid") ||
+                        document.getElementById("video-grid") ||
                         document.querySelector(".video-grid") ||
                         document.querySelector(".video-panel") ||
-                        document.getElementById("video-grid");
+                        document.getElementById("videoGrid");
 
                     if (panel) {
                         panel.innerHTML = "";
@@ -217,72 +218,196 @@ class WebRTCManager {
                     }
                 }
 
-                video.srcObject = remoteStream;
-
-                // CAMERA = FILL PANEL
-                // SCREEN = FIT FULL SCREEN WITHOUT CROPPING
-
-                const isScreen =
-                    event.track.getSettings().displaySurface !== undefined ||
-                    event.track.label.toLowerCase().includes("screen");
+                video.srcObject = teacherStream;
 
                 video.style.width = "100%";
                 video.style.height = "100%";
-                video.style.display = "block";
+                video.style.objectFit = "cover";
+                video.style.objectPosition = "center";
                 video.style.background = "#000";
 
-                video.style.objectFit =
-                    isScreen ? "contain" : "cover";
-
-                video.style.objectPosition = "center";
-
-                video.play().catch(error => {
-                    console.warn("[WebRTC] Play blocked:", error);
-                });
+                video.play().catch(console.warn);
             };
         }
 
+        // ------------------------------------------------------
+        // STORE PEER
+        // ------------------------------------------------------
+
         this.peers[remotePeerId] = pc;
 
+
         // ======================================================
-        // FORCE VIDEO PANEL FULL SIZE
+        // START SCREEN SHARE
         // ======================================================
 
-        if (!document.getElementById("webrtc-dynamic-style")) {
+        // Bind to toggleScreenShare so the HTML button triggers this logic
+        this.toggleScreenShare = async () => {
+
+            if (this.userRole !== "teacher") return;
+
+            // If already sharing, we rely on the native "Stop Sharing" button which triggers onended,
+            // but if they click the HTML button again, let's stop it properly to toggle it off.
+            if (this.screenStream) {
+                this.screenStream.getTracks().forEach(t => t.stop());
+                const videoTrack = this.screenStream.getVideoTracks()[0];
+                if (videoTrack && videoTrack.onended) videoTrack.onended();
+                return false;
+            }
+
+            try {
+
+                this.screenStream =
+                    await navigator.mediaDevices.getDisplayMedia({
+                        video: true,
+                        audio: false
+                    });
+
+                const screenTrack =
+                    this.screenStream.getVideoTracks()[0];
+
+                if (!screenTrack) return false;
+
+                console.log("[WebRTC] SCREEN SHARE STARTED");
+
+                // Replace camera with screen for EVERY student
+
+                for (const peerId in this.peers) {
+
+                    const peer = this.peers[peerId];
+
+                    const sender =
+                        peer._teacherVideoSender ||
+                        peer.getSenders().find(
+                            sender => sender.track?.kind === "video"
+                        );
+
+                    if (sender) {
+                        await sender.replaceTrack(screenTrack);
+                    }
+                }
+
+                // Screen fills full panel
+
+                const localVideo =
+                    document.getElementById("video-local") ||
+                    document.getElementById("teacherVideo") ||
+                    document.getElementById("localVideo");
+
+                if (localVideo) {
+
+                    localVideo.srcObject = this.screenStream;
+
+                    localVideo.style.width = "100%";
+                    localVideo.style.height = "100%";
+                    localVideo.style.objectFit = "contain";
+                    localVideo.style.objectPosition = "center";
+                    localVideo.style.background = "#000";
+                }
+
+                // Camera is NOT stopped.
+                // Camera continues running in localStream.
+
+                screenTrack.onended = async () => {
+
+                    console.log("[WebRTC] SCREEN SHARE STOPPED");
+
+                    const cameraTrack =
+                        this.localStream
+                            ?.getVideoTracks()[0];
+
+                    if (!cameraTrack) return;
+
+                    // Return camera to EVERY student
+
+                    for (const peerId in this.peers) {
+
+                        const peer = this.peers[peerId];
+
+                        const sender =
+                            peer._teacherVideoSender ||
+                            peer.getSenders().find(
+                                sender => sender.track?.kind === "video"
+                            );
+
+                        if (sender) {
+                            await sender.replaceTrack(cameraTrack);
+                        }
+                    }
+
+                    // Return teacher panel to camera
+
+                    if (localVideo) {
+
+                        localVideo.srcObject = this.localStream;
+
+                        localVideo.style.width = "100%";
+                        localVideo.style.height = "100%";
+                        localVideo.style.objectFit = "cover";
+                        localVideo.style.objectPosition = "center";
+                    }
+
+                    this.screenStream = null;
+
+                    const btn = document.getElementById("btn-screen");
+                    if (btn) btn.classList.remove("active");
+
+                    console.log(
+                        "[WebRTC] CAMERA RESTORED"
+                    );
+                };
+
+                return true;
+
+            } catch (error) {
+
+                console.error(
+                    "[WebRTC] Screen share error:",
+                    error
+                );
+                return false;
+            }
+        };
+
+
+        // ======================================================
+        // FULL VIDEO PANEL CSS
+        // ======================================================
+
+        if (!document.getElementById("webrtc-video-style")) {
+
             const style = document.createElement("style");
-            style.id = "webrtc-dynamic-style";
-            style.textContent = `
-            #videoGrid,
-            #video-grid,
-            .video-grid,
-            .video-panel {
-                width: 100% !important;
-                height: 100% !important;
-                min-height: 0 !important;
-                overflow: hidden !important;
-                background: #000 !important;
-            }
 
-            #teacherVideo {
-                width: 100% !important;
-                height: 100% !important;
-                max-width: none !important;
-                max-height: none !important;
-                display: block !important;
-                object-fit: cover;
-                object-position: center;
-                background: #000;
-            }
+            style.id = "webrtc-video-style";
+
+            style.textContent = `
+                #videoGrid,
+                #video-grid,
+                .video-grid,
+                .video-panel {
+                    width: 100% !important;
+                    height: 100% !important;
+                    min-height: 0 !important;
+                    overflow: hidden !important;
+                    background: #000 !important;
+                }
+
+                #teacherVideo,
+                #localVideo,
+                #video-local {
+                    width: 100% !important;
+                    height: 100% !important;
+                    max-width: none !important;
+                    max-height: none !important;
+                    display: block !important;
+                    object-fit: cover;
+                    object-position: center;
+                    background: #000;
+                }
             `;
+
             document.head.appendChild(style);
         }
-
-        console.log(
-            "[WebRTC] Peer ready:",
-            remotePeerId,
-            "| Role:",
-            this.userRole
-        );
 
         if (isInitiator) {
             const offer = await pc.createOffer();
